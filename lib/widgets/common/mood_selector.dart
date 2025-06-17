@@ -19,38 +19,38 @@ class MoodSelector extends StatefulWidget {
 }
 
 class _MoodSelectorState extends State<MoodSelector> {
-  // 从心情最好(5)到最差(1)排序
+  // 从心情最好(10)到最差(0)排序
   final List<Map<String, dynamic>> _moods = [
     {
-      'value': 5, 
+      'value': 10, 
       'icon': AppImages.mood5, 
       'label': '很开心', 
       'emoji': '😊',
       'content': '今天心情特别好！阳光明媚，一切都很顺利，感觉生活充满了美好和希望。'
     },
     {
-      'value': 4, 
+      'value': 8, 
       'icon': AppImages.mood4, 
       'label': '还不错', 
       'emoji': '🙂',
       'content': '今天状态不错，虽然没有特别兴奋，但内心很平静，对未来充满期待。'
     },
     {
-      'value': 3, 
+      'value': 5, 
       'icon': AppImages.mood3, 
       'label': '一般', 
       'emoji': '😐',
       'content': '今天感觉平平常常，没有特别的起伏，就是普通的一天，希望明天会更好。'
     },
     {
-      'value': 2, 
+      'value': 3, 
       'icon': AppImages.mood2, 
       'label': '有点难过', 
       'emoji': '😔',
       'content': '今天有些不太顺心，遇到了一些小困难，心情有点低落，需要调整一下。'
     },
     {
-      'value': 1, 
+      'value': 0, 
       'icon': AppImages.mood1, 
       'label': '很难过', 
       'emoji': '😢',

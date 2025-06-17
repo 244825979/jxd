@@ -2,7 +2,7 @@ class MoodRecord {
   final String id;
   final DateTime date;
   final String moodEmoji;
-  final int moodValue; // 1-5 心情指数
+  final int moodValue; // 0-10 心情指数
   final String? note; // 心情内容
   final String? title; // 心情标题
 

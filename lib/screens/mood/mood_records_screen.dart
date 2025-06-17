@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../constants/app_colors.dart';
+import '../../constants/app_images.dart';
 import '../../widgets/common/custom_card.dart';
 import '../../services/storage_service.dart';
 import '../../models/mood_record.dart';
@@ -57,7 +58,7 @@ class _MoodRecordsScreenState extends State<MoodRecordsScreen> {
         id: '1',
         date: now.subtract(const Duration(days: 0, hours: 2)),
         moodEmoji: '😊',
-        moodValue: 4,
+        moodValue: 8,
         note: '今天工作很顺利，完成了一个重要的项目，心情很不错！',
         title: '工作顺利',
       ),
@@ -65,7 +66,7 @@ class _MoodRecordsScreenState extends State<MoodRecordsScreen> {
         id: '2',
         date: now.subtract(const Duration(days: 1, hours: 3)),
         moodEmoji: '😴',
-        moodValue: 3,
+        moodValue: 5,
         note: '昨天熬夜了，今天有点累，但总体还行。',
         title: '有点疲惫',
       ),
@@ -73,7 +74,7 @@ class _MoodRecordsScreenState extends State<MoodRecordsScreen> {
         id: '3',
         date: now.subtract(const Duration(days: 2, hours: 1)),
         moodEmoji: '😄',
-        moodValue: 5,
+        moodValue: 10,
         note: '和朋友们一起聚餐，聊得很开心，笑到肚子疼！',
         title: '开心聚餐',
       ),
@@ -81,7 +82,7 @@ class _MoodRecordsScreenState extends State<MoodRecordsScreen> {
         id: '4',
         date: now.subtract(const Duration(days: 3, hours: 4)),
         moodEmoji: '😔',
-        moodValue: 2,
+        moodValue: 3,
         note: '遇到了一些挫折，感觉有点沮丧，需要调整心态。',
         title: '遇到挫折',
       ),
@@ -89,7 +90,7 @@ class _MoodRecordsScreenState extends State<MoodRecordsScreen> {
         id: '5',
         date: now.subtract(const Duration(days: 4, hours: 2)),
         moodEmoji: '🤔',
-        moodValue: 3,
+        moodValue: 5,
         note: '今天在思考一些人生问题，心情比较平静。',
         title: '思考人生',
       ),
@@ -97,7 +98,7 @@ class _MoodRecordsScreenState extends State<MoodRecordsScreen> {
         id: '6',
         date: now.subtract(const Duration(days: 5, hours: 1)),
         moodEmoji: '😌',
-        moodValue: 4,
+        moodValue: 8,
         note: '看了一本好书，心情很平和，感觉收获很多。',
         title: '读书收获',
       ),
@@ -105,7 +106,7 @@ class _MoodRecordsScreenState extends State<MoodRecordsScreen> {
         id: '7',
         date: now.subtract(const Duration(days: 6, hours: 3)),
         moodEmoji: '😢',
-        moodValue: 1,
+        moodValue: 0,
         note: '今天心情很低落，什么都不想做，希望明天会好一些。',
         title: '心情低落',
       ),
@@ -117,24 +118,37 @@ class _MoodRecordsScreenState extends State<MoodRecordsScreen> {
   }
 
   String _getMoodTitle(int moodValue) {
-    switch (moodValue) {
-      case 1: return '很不开心';
-      case 2: return '有点低落';
-      case 3: return '平平常常';
-      case 4: return '心情不错';
-      case 5: return '非常开心';
-      default: return '未知心情';
-    }
+    if (moodValue >= 9) return '非常开心';
+    if (moodValue >= 7) return '心情不错';
+    if (moodValue >= 4) return '平平常常';
+    if (moodValue >= 2) return '有点低落';
+    return '很不开心';
   }
 
   Color _getMoodColor(int moodValue) {
+    if (moodValue >= 8) return const Color(0xFF4CAF50); // 绿色 - 很好
+    if (moodValue >= 6) return const Color(0xFF8BC34A); // 浅绿 - 好
+    if (moodValue >= 4) return const Color(0xFFFFB74D); // 橙色 - 一般
+    if (moodValue >= 2) return const Color(0xFFFF8A65); // 橙红 - 不好
+    return const Color(0xFFE57373); // 红色 - 很差
+  }
+
+  // 根据心情数值获取对应的图片图标，与首页心情选择器保持一致
+  String _getMoodIcon(int moodValue) {
+    // 精确匹配首页的5个分值
     switch (moodValue) {
-      case 1: return const Color(0xFFE57373); // 红色
-      case 2: return const Color(0xFFFF8A65); // 橙红
-      case 3: return const Color(0xFFFFB74D); // 橙色
-      case 4: return const Color(0xFF81C784); // 浅绿
-      case 5: return const Color(0xFF66BB6A); // 绿色
-      default: return AppColors.textHint;
+      case 10: return AppImages.mood5; // 很开心
+      case 8: return AppImages.mood4;  // 还不错
+      case 5: return AppImages.mood3;  // 一般
+      case 3: return AppImages.mood2;  // 有点难过
+      case 0: return AppImages.mood1;  // 很难过
+      default:
+        // 对于其他分值，使用最接近的图标
+        if (moodValue >= 9) return AppImages.mood5;
+        if (moodValue >= 7) return AppImages.mood4;
+        if (moodValue >= 4) return AppImages.mood3;
+        if (moodValue >= 2) return AppImages.mood2;
+        return AppImages.mood1;
     }
   }
 
@@ -330,23 +344,20 @@ class _MoodRecordsScreenState extends State<MoodRecordsScreen> {
                   width: 2,
                 ),
               ),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    record.moodEmoji,
-                    style: const TextStyle(fontSize: 20),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    record.moodValue.toString(),
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                      color: moodColor,
-                    ),
-                  ),
-                ],
+              child: Center(
+                child: // 使用与首页相同的图片图标
+                Image.asset(
+                  _getMoodIcon(record.moodValue),
+                  width: 32,
+                  height: 32,
+                  errorBuilder: (context, error, stackTrace) {
+                    // 如果图片加载失败，使用emoji作为备用
+                    return Text(
+                      record.moodEmoji,
+                      style: const TextStyle(fontSize: 24),
+                    );
+                  },
+                ),
               ),
             ),
             const SizedBox(width: 16),

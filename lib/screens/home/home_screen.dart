@@ -20,11 +20,12 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  int _selectedMood = 3;
+  int _selectedMood = 5;
   final TextEditingController _moodNoteController = TextEditingController();
   late DataService _dataService;
   late StorageService _storageService;
   bool _isInitialized = false;
+  Key _weeklyMoodKey = UniqueKey(); // 用于强制刷新心情卡片
 
   @override
   void initState() {
@@ -36,7 +37,7 @@ class _HomeScreenState extends State<HomeScreen> {
     _dataService = DataService.getInstance();
     _storageService = await StorageService.getInstance();
     
-    // 初始化时自动填充默认心情(3-一般)的内容
+    // 初始化时自动填充默认心情(5-一般)的内容
     _onMoodContentChanged(_getDefaultMoodContent());
     
     setState(() {
@@ -75,7 +76,8 @@ class _HomeScreenState extends State<HomeScreen> {
     
     // 重置到默认状态并自动填充默认心情内容
     setState(() {
-      _selectedMood = 3;
+      _selectedMood = 5;
+      _weeklyMoodKey = UniqueKey(); // 刷新心情卡片
     });
     _onMoodContentChanged(_getDefaultMoodContent());
 
@@ -91,17 +93,17 @@ class _HomeScreenState extends State<HomeScreen> {
 
   String _getMoodEmoji(int mood) {
     switch (mood) {
-      case 1: return '😢';
-      case 2: return '😔';
-      case 3: return '😐';
-      case 4: return '🙂';
-      case 5: return '😊';
+      case 0: return '😢';
+      case 3: return '😔';
+      case 5: return '😐';
+      case 8: return '🙂';
+      case 10: return '😊';
       default: return '😐';
     }
   }
 
   String _getDefaultMoodContent() {
-    // 默认心情(3-一般)的内容
+    // 默认心情(5-一般)的内容
     return '今天感觉平平常常，没有特别的起伏，就是普通的一天，希望明天会更好。';
   }
 
@@ -114,41 +116,39 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   // 生成最近7天的心情数据
-  List<Map<String, dynamic>> _generateWeeklyMoodData() {
+  Future<List<Map<String, dynamic>>> _generateWeeklyMoodData() async {
     final List<Map<String, dynamic>> data = [];
     final now = DateTime.now();
+    
+    // 获取存储的心情记录
+    final moodRecords = await _storageService.getMoodRecords();
     
     // 生成7天的数据
     for (int i = 6; i >= 0; i--) {
       final date = now.subtract(Duration(days: i));
+      final dayStart = DateTime(date.year, date.month, date.day);
+      final dayEnd = dayStart.add(const Duration(days: 1));
       
-      // 根据日期生成模拟心情数据
-      double baseMood = 3.5; // 基础心情值
+      // 查找当天的心情记录
+      final dayRecords = moodRecords.where((record) {
+        return record.date.isAfter(dayStart.subtract(const Duration(milliseconds: 1))) &&
+               record.date.isBefore(dayEnd);
+      }).toList();
       
-      // 周末通常心情更好
-      if (date.weekday == DateTime.saturday || date.weekday == DateTime.sunday) {
-        baseMood += 0.8;
+      double moodValue = 0.0;
+      if (dayRecords.isNotEmpty) {
+        // 如果有记录，计算当天的平均心情
+        final totalMood = dayRecords.fold(0, (sum, record) => sum + record.moodValue);
+        moodValue = totalMood / dayRecords.length;
       }
-      
-      // 周一通常心情稍低
-      if (date.weekday == DateTime.monday) {
-        baseMood -= 0.4;
-      }
-      
-      // 周五心情会好一些
-      if (date.weekday == DateTime.friday) {
-        baseMood += 0.6;
-      }
-      
-      // 添加一些随机波动
-      final randomFactor = (date.day % 5) * 0.2 - 0.4;
-      final moodValue = (baseMood + randomFactor).clamp(1.0, 5.0);
+      // 如果没有记录，保持为0（不显示柱子）
       
       data.add({
         'date': date,
         'mood': moodValue,
         'dayLabel': i == 0 ? '今天' : '${date.month}/${date.day}',
         'isToday': i == 0,
+        'hasRecord': dayRecords.isNotEmpty,
       });
     }
     
@@ -157,10 +157,35 @@ class _HomeScreenState extends State<HomeScreen> {
 
   // 构建最近7天心情卡片
   Widget _buildWeeklyMoodCard() {
-    final moodData = _generateWeeklyMoodData();
-    final totalRecords = moodData.length;
-    final recordDays = moodData.where((data) => data['mood'] > 0).length;
-    final avgMood = moodData.map((e) => e['mood'] as double).reduce((a, b) => a + b) / moodData.length;
+    return FutureBuilder<List<Map<String, dynamic>>>(
+      key: _weeklyMoodKey,
+      future: _generateWeeklyMoodData(),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) {
+          return CustomCard(
+            child: Container(
+              height: 200,
+              child: const Center(
+                child: CircularProgressIndicator(color: AppColors.accent),
+              ),
+            ),
+          );
+        }
+        
+        final moodData = snapshot.data!;
+        final recordDays = moodData.where((data) => data['hasRecord'] == true).length;
+        final recordsWithMood = moodData.where((data) => data['hasRecord'] == true).toList();
+        final avgMood = recordsWithMood.isNotEmpty 
+            ? recordsWithMood.map((e) => e['mood'] as double).reduce((a, b) => a + b) / recordsWithMood.length
+            : 0.0;
+        
+        return _buildWeeklyMoodCardContent(moodData, recordDays, avgMood);
+      },
+    );
+  }
+
+  // 构建心情卡片内容
+  Widget _buildWeeklyMoodCardContent(List<Map<String, dynamic>> moodData, int recordDays, double avgMood) {
     
     return CustomCard(
       child: Column(
@@ -221,9 +246,9 @@ class _HomeScreenState extends State<HomeScreen> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                _buildStatItem('😊', '$totalRecords', '总记录数'),
-                _buildStatItem('📅', '$recordDays', '记录天数'),
-                _buildStatItem('📈', avgMood.toStringAsFixed(1), '平均心情'),
+                _buildStatItem('😊', '$recordDays', '记录天数'),
+                _buildStatItem('📅', '7', '统计天数'),
+                _buildStatItem('📈', avgMood > 0 ? avgMood.toStringAsFixed(1) : '--', '平均心情'),
               ],
             ),
           ),
@@ -265,20 +290,59 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // 构建单个心情柱子
+    // 构建单个心情柱子
   Widget _buildMoodBar(Map<String, dynamic> data) {
     final mood = data['mood'] as double;
     final isToday = data['isToday'] as bool;
-    final barHeight = (mood / 5.0) * 50 + 10; // 最小10px，最大60px
+    final hasRecord = data['hasRecord'] as bool;
+    
+    // 如果没有记录，显示占位柱子
+    if (!hasRecord) {
+      return Column(
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
+          // 占位柱子
+          Container(
+            width: 24,
+            height: 15,
+            decoration: BoxDecoration(
+              color: AppColors.textHint.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Center(
+              child: Text(
+                '--',
+                style: TextStyle(
+                  fontSize: 8,
+                  color: AppColors.textHint,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
+          // 日期标签
+          Text(
+            data['dayLabel'],
+            style: TextStyle(
+              fontSize: 10,
+              fontWeight: isToday ? FontWeight.w600 : FontWeight.normal,
+              color: isToday ? AppColors.accent : AppColors.textHint,
+            ),
+          ),
+        ],
+      );
+    }
+    
+    final barHeight = (mood / 10.0) * 50 + 10; // 最小10px，最大60px
     
     Color barColor;
-    if (mood >= 4.5) {
+    if (mood >= 8.0) {
       barColor = const Color(0xFF4CAF50); // 绿色 - 很好
-    } else if (mood >= 3.5) {
+    } else if (mood >= 6.0) {
       barColor = const Color(0xFF8BC34A); // 浅绿 - 好
-    } else if (mood >= 2.5) {
+    } else if (mood >= 4.0) {
       barColor = const Color(0xFFFFB74D); // 橙色 - 一般
-    } else if (mood >= 1.5) {
+    } else if (mood >= 2.0) {
       barColor = const Color(0xFFFF8A65); // 橙红 - 不好
     } else {
       barColor = const Color(0xFFE57373); // 红色 - 很差
@@ -303,7 +367,7 @@ class _HomeScreenState extends State<HomeScreen> {
           style: TextStyle(
             fontSize: 10,
             fontWeight: isToday ? FontWeight.w600 : FontWeight.normal,
-                         color: isToday ? AppColors.accent : AppColors.textHint,
+            color: isToday ? AppColors.accent : AppColors.textHint,
           ),
         ),
       ],

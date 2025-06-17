@@ -12,11 +12,11 @@ class AppImages {
   static const String natureBg = 'assets/images/backgrounds/nature_bg.jpg';
   
   // 心情图标 (xinqing目录下) - 从心情最好到最差
-  static const String mood5 = 'assets/images/xinqing/xinqing_1.png';  // 很开心
-  static const String mood4 = 'assets/images/xinqing/xinqing_2.png';  // 还不错
-  static const String mood3 = 'assets/images/xinqing/xinqing_3.png';  // 一般
-  static const String mood2 = 'assets/images/xinqing/xinqing_4.png';  // 有点难过
-  static const String mood1 = 'assets/images/xinqing/xinqing_5.png';  // 很难过
+  static const String mood5 = 'assets/images/xinqing/xinqing_1.png';  // 很开心 10
+  static const String mood4 = 'assets/images/xinqing/xinqing_2.png';  // 还不错 8
+  static const String mood3 = 'assets/images/xinqing/xinqing_3.png';  // 一般 5
+  static const String mood2 = 'assets/images/xinqing/xinqing_4.png';  // 有点难过 
+  static const String mood1 = 'assets/images/xinqing/xinqing_5.png';  // 很难过 0
   
   // 旧图标 (保持兼容性)
   static const String moodCalm = 'assets/images/icons/mood_calm.png';

@@ -52,26 +52,6 @@ class _SoundLibraryScreenState extends State<SoundLibraryScreen> {
             ),
             const SizedBox(height: 24),
 
-            // 冥想音引导
-            CustomCard(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    AppStrings.meditation,
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.textPrimary,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  ...(_meditationAudios.map((audio) => _buildAudioItem(audio))),
-                ],
-              ),
-            ),
-            const SizedBox(height: 16),
-
             // 白噪音
             CustomCard(
               child: Column(
@@ -100,6 +80,26 @@ class _SoundLibraryScreenState extends State<SoundLibraryScreen> {
                       return _buildWhiteNoiseCard(_whiteNoiseAudios[index]);
                     },
                   ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // 冥想音引导
+            CustomCard(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    AppStrings.meditation,
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  ...(_meditationAudios.map((audio) => _buildAudioItem(audio))),
                 ],
               ),
             ),
