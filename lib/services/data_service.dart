@@ -36,13 +36,33 @@ class DataService {
     ),
     AudioItem(
       id: 'meditation_3',
-      title: '5分钟放松冥想',
+      title: '身心放松冥想',
       description: '快速放松身心的短时冥想',
       coverImage: 'assets/images/meditation/relaxation.jpg',
       audioPath: 'audios/meditation/quick_relaxation.mp3',
       duration: 300, // 5分钟
       type: AudioType.meditation,
       category: '快速冥想',
+    ),
+    AudioItem(
+      id: 'meditation_4',
+      title: '身体扫描冥想',
+      description: '通过身体扫描技术，释放身体各部位的紧张',
+      coverImage: 'assets/images/meditation/body_scan.jpg',
+      audioPath: 'voice/meditation/body_scan.mp3',
+      duration: 90, // 90秒
+      type: AudioType.meditation,
+      category: '身体觉知',
+    ),
+    AudioItem(
+      id: 'meditation_5',
+      title: '感恩冥想',
+      description: '培养感恩之心，感受生活中的美好',
+      coverImage: 'assets/images/meditation/gratitude.jpg',
+      audioPath: 'voice/meditation/gratitude.mp3',
+      duration: 90, // 90秒
+      type: AudioType.meditation,
+      category: '情感疗愈',
     ),
     // 白噪音
     AudioItem(
@@ -194,7 +214,7 @@ class DataService {
   final List<Map<String, dynamic>> _recommendations = [
     {
       'type': 'meditation',
-      'title': '5分钟放松冥想',
+      'title': '身心放松冥想',
       'duration': '5分钟',
       'image': 'assets/images/meditation/relaxation.jpg',
       'audioId': 'meditation_3',
