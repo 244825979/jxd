@@ -1,0 +1,124 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# JXD Flutter Project - 静心岛 App Development Guide
+
+## Project Overview
+This is a Flutter app called "静心岛" (Jingxin Island) - a mental health and emotional wellbeing application. The project is based on an HTML prototype ([jxd.html](mdc:jxd.html)) and follows the architecture defined in [README.md](mdc:README.md).
+
+**App Positioning**: 情绪管理、治愈陪伴、AI对话、冥想白噪音、匿名分享、小众社交、心情记录、心理健康工具
+
+**Color Scheme**: 
+- Primary: #E8F5F9 (浅雾蓝 - Light Mist Blue)
+- Background: #FFFDFD (白色背景 - White Background)  
+- Accent: #B3D9D6 (薄荷绿 - Mint Green)
+
+## Architecture Constraints & Requirements
+
+### MANDATORY Constraints
+1. **NO freezed package** - Do not use freezed or part syntax
+2. **setState only** - Use setState for state management, no complex state management solutions
+3. **SharedPreferences** - Use only shared_preferences for data storage
+4. **Local images** - Use local assets like user_1.png, user_2.png, ai_avatar.png
+5. **Hardcoded data** - All user/character data should be hardcoded in the app
+6. **NO cached_network_image** - Do not use this package
+7. **NO account system** - No login/registration functionality
+8. **NO external fonts** - Use system default fonts only
+
+### Core Features
+- **首页 (Home)**: Mood check-in, AI companion entry, daily recommendations, emotion trend charts
+- **声音馆 (Sound Library)**: Meditation audio, white noise, audio player, timer functionality
+- **广场 (Plaza)**: Anonymous community, post publishing, topic tags, social interactions
+- **消息 (Messages)**: AI private chat, notification center
+- **我的 (Profile)**: Emotion portrait, collections, my posts, settings
+
+## Directory Structure Pattern
+```
+lib/
+├── main.dart                    # App entry point
+├── app.dart                     # App configuration
+├── constants/                   # Constants definition
+├── models/                      # Data models (5 core models)
+├── services/                    # Service layer (3 core services)
+├── widgets/common/              # Reusable components
+├── widgets/charts/              # Chart components
+├── screens/                     # Page screens (organized by feature modules)
+├── utils/                       # Utility classes
+```
+
+## Key Data Models
+Based on [README.md](mdc:README.md), implement these 5 core models:
+- **MoodRecord**: id, date, moodValue, moodEmoji, note, voiceNote
+- **AudioItem**: id, title, description, coverImage, audioPath, duration, type, category, isFavorite
+- **Post**: id, content, imageUrl, tags, createdAt, authorAvatar, likeCount, commentCount, isLiked, isBookmarked
+- **NotificationItem**: id, title, content, type, createdAt, isRead
+- **UserData**: favoriteAudios, bookmarkedPosts, myPostIds, settings
+
+## Service Layer Pattern
+Implement 3 core services:
+- **StorageService**: SharedPreferences wrapper for local data persistence
+- **AudioService**: Audio playback control, timer functionality, progress management
+- **DataService**: Local static data management, mock API responses, CRUD operations
+
+## Development Guidelines
+
+### State Management
+- Use `setState()` for page-level state management
+- Manage cross-page data through service classes
+- Pass simple data through constructor parameters
+
+### UI Design Principles
+- Follow Material Design guidelines
+- Use system default fonts
+- Maintain color consistency with HTML prototype
+- Create reusable custom components in widgets/common/
+
+### Asset Management
+- Store images in assets/images/ with subdirectories for avatars/, backgrounds/, icons/
+- Store audio files in assets/audios/ with subdirectories for meditation/, white_noise/
+- Use meaningful names like user_1.png, user_2.png, ai_avatar.png
+
+### Code Organization
+- Keep models simple without complex serialization
+- Service classes should be singletons or static
+- Separate concerns: UI components, business logic, data management
+- Use meaningful file and class names in Chinese context
+
+### Performance Considerations
+- Dispose audio players properly
+- Implement lazy loading for lists
+- Avoid main thread blocking
+- Use async operations appropriately
+
+## Dependencies Pattern
+Only use these approved packages:
+```yaml
+dependencies:
+  flutter: sdk: flutter
+  shared_preferences: ^2.2.2    # Local storage only
+  audioplayers: ^5.2.1          # Audio playback only
+  fl_chart: ^0.65.0             # Charts only
+  image_picker: ^1.0.4          # Image selection only
+```
+
+## File Naming Conventions
+- Screens: `feature_screen.dart` (e.g., `home_screen.dart`)
+- Widgets: `component_widget.dart` (e.g., `mood_selector.dart`)
+- Models: `entity.dart` (e.g., `mood_record.dart`)
+- Services: `feature_service.dart` (e.g., `storage_service.dart`)
+- Constants: `app_feature.dart` (e.g., `app_colors.dart`)
+
+## Implementation Priority
+Follow the 8-phase development plan outlined in [README.md](mdc:README.md):
+1. Basic framework setup
+2. Core services development  
+3. Main framework and navigation
+4. Home module development
+5. Sound library module development
+6. Plaza module development
+7. Messages and profile modules
+8. Optimization and refinement
+
+When implementing features, always refer back to the HTML prototype ([jxd.html](mdc:jxd.html)) for UI/UX guidance and maintain consistency with the original design vision.
