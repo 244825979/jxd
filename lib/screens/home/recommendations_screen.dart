@@ -24,7 +24,10 @@ class _RecommendationsScreenState extends State<RecommendationsScreen> {
   }
 
   void _loadRecommendations() {
-    _allRecommendations = _dataService.getAllRecommendations();
+    final recommendations = _dataService.getAllRecommendations();
+    if (recommendations.isNotEmpty) {
+      _allRecommendations = recommendations;
+    }
   }
 
   @override
@@ -98,6 +101,12 @@ class _RecommendationsScreenState extends State<RecommendationsScreen> {
                   listenable: PlayerService(),
                   builder: (context, _) {
                     final playerService = PlayerService();
+                    
+                    // 确保数据完整性
+                    if (_allRecommendations.isEmpty) {
+                      _loadRecommendations();
+                    }
+                    
                     return ListView.builder(
                       padding: EdgeInsets.only(
                         left: 16,

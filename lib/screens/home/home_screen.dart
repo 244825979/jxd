@@ -10,6 +10,7 @@ import '../../services/player_service.dart';
 import '../../models/mood_record.dart';
 import 'ai_chat_screen.dart';
 import 'recommendations_screen.dart';
+import '../mood/mood_records_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -112,9 +113,231 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  // 生成最近7天的心情数据
+  List<Map<String, dynamic>> _generateWeeklyMoodData() {
+    final List<Map<String, dynamic>> data = [];
+    final now = DateTime.now();
+    
+    // 生成7天的数据
+    for (int i = 6; i >= 0; i--) {
+      final date = now.subtract(Duration(days: i));
+      
+      // 根据日期生成模拟心情数据
+      double baseMood = 3.5; // 基础心情值
+      
+      // 周末通常心情更好
+      if (date.weekday == DateTime.saturday || date.weekday == DateTime.sunday) {
+        baseMood += 0.8;
+      }
+      
+      // 周一通常心情稍低
+      if (date.weekday == DateTime.monday) {
+        baseMood -= 0.4;
+      }
+      
+      // 周五心情会好一些
+      if (date.weekday == DateTime.friday) {
+        baseMood += 0.6;
+      }
+      
+      // 添加一些随机波动
+      final randomFactor = (date.day % 5) * 0.2 - 0.4;
+      final moodValue = (baseMood + randomFactor).clamp(1.0, 5.0);
+      
+      data.add({
+        'date': date,
+        'mood': moodValue,
+        'dayLabel': i == 0 ? '今天' : '${date.month}/${date.day}',
+        'isToday': i == 0,
+      });
+    }
+    
+    return data;
+  }
 
+  // 构建最近7天心情卡片
+  Widget _buildWeeklyMoodCard() {
+    final moodData = _generateWeeklyMoodData();
+    final totalRecords = moodData.length;
+    final recordDays = moodData.where((data) => data['mood'] > 0).length;
+    final avgMood = moodData.map((e) => e['mood'] as double).reduce((a, b) => a + b) / moodData.length;
+    
+    return CustomCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 标题和平均分
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                '最近情绪打卡指数',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+                             Container(
+                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                 decoration: BoxDecoration(
+                   color: AppColors.accent.withOpacity(0.1),
+                   borderRadius: BorderRadius.circular(12),
+                 ),
+                 child: Text(
+                   '平均 ${avgMood.toStringAsFixed(1)}',
+                   style: const TextStyle(
+                     fontSize: 12,
+                     fontWeight: FontWeight.w500,
+                     color: AppColors.accent,
+                   ),
+                 ),
+               ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          
+          // 柱状图
+          SizedBox(
+            height: 80,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: moodData.map((data) {
+                return _buildMoodBar(data);
+              }).toList(),
+            ),
+          ),
+          
+          const SizedBox(height: 16),
+          
+          // 统计信息
+                     Container(
+             padding: const EdgeInsets.all(16),
+             decoration: BoxDecoration(
+               color: AppColors.accent.withOpacity(0.15),
+               borderRadius: BorderRadius.circular(12),
+             ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                _buildStatItem('😊', '$totalRecords', '总记录数'),
+                _buildStatItem('📅', '$recordDays', '记录天数'),
+                _buildStatItem('📈', avgMood.toStringAsFixed(1), '平均心情'),
+              ],
+            ),
+          ),
+          
+          const SizedBox(height: 16),
+          
+          // 记录按钮
+          SizedBox(
+            width: double.infinity,
+            child:              ElevatedButton.icon(
+               onPressed: () {
+                 Navigator.of(context).push(
+                   MaterialPageRoute(
+                     builder: (context) => const MoodRecordsScreen(),
+                   ),
+                 );
+               },
+                             icon: const Icon(Icons.edit, color: AppColors.accent, size: 18),
+               label: const Text(
+                 '查看情绪指数',
+                 style: TextStyle(
+                   color: AppColors.accent,
+                   fontSize: 14,
+                   fontWeight: FontWeight.w500,
+                 ),
+               ),
+               style: ElevatedButton.styleFrom(
+                 backgroundColor: AppColors.accent.withOpacity(0.1),
+                elevation: 0,
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
+  // 构建单个心情柱子
+  Widget _buildMoodBar(Map<String, dynamic> data) {
+    final mood = data['mood'] as double;
+    final isToday = data['isToday'] as bool;
+    final barHeight = (mood / 5.0) * 50 + 10; // 最小10px，最大60px
+    
+    Color barColor;
+    if (mood >= 4.5) {
+      barColor = const Color(0xFF4CAF50); // 绿色 - 很好
+    } else if (mood >= 3.5) {
+      barColor = const Color(0xFF8BC34A); // 浅绿 - 好
+    } else if (mood >= 2.5) {
+      barColor = const Color(0xFFFFB74D); // 橙色 - 一般
+    } else if (mood >= 1.5) {
+      barColor = const Color(0xFFFF8A65); // 橙红 - 不好
+    } else {
+      barColor = const Color(0xFFE57373); // 红色 - 很差
+    }
+    
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.end,
+      children: [
+        // 柱子
+        Container(
+          width: 24,
+          height: barHeight,
+          decoration: BoxDecoration(
+            color: barColor,
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+        const SizedBox(height: 8),
+        // 日期标签
+        Text(
+          data['dayLabel'],
+          style: TextStyle(
+            fontSize: 10,
+            fontWeight: isToday ? FontWeight.w600 : FontWeight.normal,
+                         color: isToday ? AppColors.accent : AppColors.textHint,
+          ),
+        ),
+      ],
+    );
+  }
 
+  // 构建统计项
+  Widget _buildStatItem(String icon, String value, String label) {
+    return Column(
+      children: [
+        Text(
+          icon,
+          style: const TextStyle(fontSize: 20),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          value,
+          style: const TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+            color: AppColors.textPrimary,
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 11,
+            color: AppColors.textHint,
+          ),
+        ),
+      ],
+    );
+  }
 
   void _onItemTap(Map<String, dynamic> item) {
     if (item['type'] == 'quote') {
@@ -387,6 +610,10 @@ class _HomeScreenState extends State<HomeScreen> {
             const SizedBox(height: 12),
             
             _buildRecommendations(),
+            const SizedBox(height: 16),
+
+            // 最近7天心情指数
+            _buildWeeklyMoodCard(),
           ],
         ),
       ),

@@ -1,57 +1,79 @@
 class MoodRecord {
   final String id;
   final DateTime date;
-  final int moodValue; // 1-5心情等级
-  final String moodEmoji; // 心情表情
-  final String? note; // 文字记录
-  final String? voiceNote; // 语音记录路径
+  final String moodEmoji;
+  final int moodValue; // 1-5 心情指数
+  final String? note; // 心情内容
+  final String? title; // 心情标题
 
   MoodRecord({
     required this.id,
     required this.date,
-    required this.moodValue,
     required this.moodEmoji,
+    required this.moodValue,
     this.note,
-    this.voiceNote,
+    this.title,
   });
 
   Map<String, dynamic> toJson() {
     return {
       'id': id,
       'date': date.toIso8601String(),
-      'moodValue': moodValue,
       'moodEmoji': moodEmoji,
+      'moodValue': moodValue,
       'note': note,
-      'voiceNote': voiceNote,
+      'title': title,
     };
   }
 
   factory MoodRecord.fromJson(Map<String, dynamic> json) {
     return MoodRecord(
-      id: json['id'],
-      date: DateTime.parse(json['date']),
-      moodValue: json['moodValue'],
-      moodEmoji: json['moodEmoji'],
-      note: json['note'],
-      voiceNote: json['voiceNote'],
+      id: json['id'] as String,
+      date: DateTime.parse(json['date'] as String),
+      moodEmoji: json['moodEmoji'] as String,
+      moodValue: json['moodValue'] as int,
+      note: json['note'] as String?,
+      title: json['title'] as String?,
     );
   }
 
   MoodRecord copyWith({
     String? id,
     DateTime? date,
-    int? moodValue,
     String? moodEmoji,
+    int? moodValue,
     String? note,
-    String? voiceNote,
+    String? title,
   }) {
     return MoodRecord(
       id: id ?? this.id,
       date: date ?? this.date,
-      moodValue: moodValue ?? this.moodValue,
       moodEmoji: moodEmoji ?? this.moodEmoji,
+      moodValue: moodValue ?? this.moodValue,
       note: note ?? this.note,
-      voiceNote: voiceNote ?? this.voiceNote,
+      title: title ?? this.title,
     );
+  }
+
+  @override
+  String toString() {
+    return 'MoodRecord(id: $id, date: $date, moodEmoji: $moodEmoji, moodValue: $moodValue, note: $note, title: $title)';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    return other is MoodRecord &&
+        other.id == id &&
+        other.date == date &&
+        other.moodEmoji == moodEmoji &&
+        other.moodValue == moodValue &&
+        other.note == note &&
+        other.title == title;
+  }
+
+  @override
+  int get hashCode {
+    return Object.hash(id, date, moodEmoji, moodValue, note, title);
   }
 } 
