@@ -77,7 +77,7 @@ class _SoundLibraryScreenState extends State<SoundLibraryScreen> {
                     ),
                     itemCount: _whiteNoiseAudios.length,
                     itemBuilder: (context, index) {
-                      return _buildWhiteNoiseCard(_whiteNoiseAudios[index]);
+                      return _buildWhiteNoiseCard(_whiteNoiseAudios[index], index);
                     },
                   ),
                 ],
@@ -100,26 +100,6 @@ class _SoundLibraryScreenState extends State<SoundLibraryScreen> {
                   ),
                   const SizedBox(height: 16),
                   ...(_meditationAudios.map((audio) => _buildAudioItem(audio))),
-                ],
-              ),
-            ),
-            const SizedBox(height: 16),
-
-            // 当前播放
-            CustomCard(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    AppStrings.currentPlaying,
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.textPrimary,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  _buildCurrentPlayer(),
                 ],
               ),
             ),
@@ -187,123 +167,57 @@ class _SoundLibraryScreenState extends State<SoundLibraryScreen> {
     );
   }
 
-  Widget _buildWhiteNoiseCard(AudioItem audio) {
+  Widget _buildWhiteNoiseCard(AudioItem audio, int index) {
+    // 根据索引获取背景图片路径
+    final backgroundImage = 'assets/images/backgrounds/bzy_bg${index + 1}.jpeg';
+    
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.primary,
         borderRadius: BorderRadius.circular(12),
+        image: DecorationImage(
+          image: AssetImage(backgroundImage),
+          fit: BoxFit.cover,
+        ),
       ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Container(
-            width: 60,
-            height: 60,
-            decoration: BoxDecoration(
-              color: AppColors.accent.withOpacity(0.2),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: const Icon(Icons.waves, color: AppColors.accent, size: 30),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            audio.title,
-            style: const TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w500,
-              color: AppColors.textPrimary,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildCurrentPlayer() {
-    return Column(
-      children: [
-        Row(
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(12),
+          // 添加半透明遮罩以确保文字可读性
+          color: Colors.black.withOpacity(0.3),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Container(
               width: 60,
               height: 60,
               decoration: BoxDecoration(
-                color: AppColors.accent.withOpacity(0.2),
+                color: Colors.white.withOpacity(0.2),
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: const Icon(Icons.music_note, color: AppColors.accent),
+              child: const Icon(Icons.waves, color: Colors.white, size: 30),
             ),
-            const SizedBox(width: 12),
-            const Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    '正念呼吸',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.textPrimary,
-                    ),
-                  ),
-                  Text(
-                    '寻找内心平静',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: AppColors.textSecondary,
-                    ),
+            const SizedBox(height: 8),
+            Text(
+              audio.title,
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+                color: Colors.white,
+                shadows: [
+                  Shadow(
+                    offset: Offset(0, 1),
+                    blurRadius: 2,
+                    color: Colors.black54,
                   ),
                 ],
               ),
             ),
-            const Icon(Icons.favorite_border, color: AppColors.accent),
-            const SizedBox(width: 8),
-            const Icon(Icons.play_circle_fill, color: AppColors.accent, size: 36),
           ],
         ),
-        const SizedBox(height: 16),
-        
-        // 进度条
-        Column(
-          children: [
-            LinearProgressIndicator(
-              value: 0.6,
-              backgroundColor: AppColors.divider,
-              valueColor: const AlwaysStoppedAnimation<Color>(AppColors.accent),
-            ),
-            const SizedBox(height: 8),
-            const Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text('0:30', style: TextStyle(color: AppColors.textHint, fontSize: 12)),
-                Text('15:00', style: TextStyle(color: AppColors.textHint, fontSize: 12)),
-              ],
-            ),
-          ],
-        ),
-        const SizedBox(height: 16),
-        
-        // 定时关闭按钮
-        SizedBox(
-          width: double.infinity,
-          child: ElevatedButton.icon(
-            onPressed: () {
-              // TODO: 设置定时关闭
-            },
-            icon: const Icon(Icons.timer, color: AppColors.textPrimary),
-            label: const Text(
-              AppStrings.timer,
-              style: TextStyle(color: AppColors.textPrimary),
-            ),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
-              ),
-            ),
-          ),
-        ),
-      ],
+      ),
     );
   }
+
+
 } 

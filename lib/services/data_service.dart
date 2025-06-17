@@ -85,6 +85,26 @@ class DataService {
       type: AudioType.whiteNoise,
       category: '生理声音',
     ),
+    AudioItem(
+      id: 'whitenoise_5',
+      title: '篝火',
+      description: '温暖的篝火声，营造安全舒适的氛围',
+      coverImage: 'assets/images/whitenoise/fire.jpg',
+      audioPath: 'audios/white_noise/fire.mp3',
+      duration: 3600, // 1小时
+      type: AudioType.whiteNoise,
+      category: '环境声音',
+    ),
+    AudioItem(
+      id: 'whitenoise_6',
+      title: '森林',
+      description: '清新的森林声音，鸟鸣与风声的自然和谐',
+      coverImage: 'assets/images/whitenoise/forest.jpg',
+      audioPath: 'audios/white_noise/forest.mp3',
+      duration: 3600, // 1小时
+      type: AudioType.whiteNoise,
+      category: '自然声音',
+    ),
   ];
 
   // 静态帖子数据
