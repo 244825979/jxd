@@ -50,8 +50,8 @@ class DataService {
       title: '雨声',
       description: '自然雨声，营造宁静氛围',
       coverImage: 'assets/images/whitenoise/rain.jpg',
-      audioPath: 'audios/white_noise/rain.mp3',
-      duration: 3600, // 1小时
+      audioPath: 'voice/bzy/rain.mp3',
+      duration: 90, // 90秒
       type: AudioType.whiteNoise,
       category: '自然声音',
     ),
@@ -60,8 +60,8 @@ class DataService {
       title: '海浪',
       description: '温柔的海浪声，仿佛置身海边',
       coverImage: 'assets/images/whitenoise/ocean.jpg',
-      audioPath: 'audios/white_noise/ocean.mp3',
-      duration: 3600, // 1小时
+      audioPath: 'voice/bzy/ocean.mp3',
+      duration: 90, // 90秒
       type: AudioType.whiteNoise,
       category: '自然声音',
     ),
@@ -70,8 +70,8 @@ class DataService {
       title: '咖啡馆',
       description: '咖啡馆的环境音，专注工作的好伴侣',
       coverImage: 'assets/images/whitenoise/cafe.jpg',
-      audioPath: 'audios/white_noise/cafe.mp3',
-      duration: 3600, // 1小时
+      audioPath: 'voice/bzy/cafe.mp3',
+      duration: 90, // 90秒
       type: AudioType.whiteNoise,
       category: '环境声音',
     ),
@@ -80,8 +80,8 @@ class DataService {
       title: '心跳',
       description: '平静的心跳声，回到母体的安全感',
       coverImage: 'assets/images/whitenoise/heartbeat.jpg',
-      audioPath: 'audios/white_noise/heartbeat.mp3',
-      duration: 3600, // 1小时
+      audioPath: 'voice/bzy/heartbeat.mp3',
+      duration: 90, // 90秒
       type: AudioType.whiteNoise,
       category: '生理声音',
     ),
@@ -90,8 +90,8 @@ class DataService {
       title: '篝火',
       description: '温暖的篝火声，营造安全舒适的氛围',
       coverImage: 'assets/images/whitenoise/fire.jpg',
-      audioPath: 'audios/white_noise/fire.mp3',
-      duration: 3600, // 1小时
+      audioPath: 'voice/bzy/campfire.mp3',
+      duration: 90, // 90秒
       type: AudioType.whiteNoise,
       category: '环境声音',
     ),
@@ -100,8 +100,8 @@ class DataService {
       title: '森林',
       description: '清新的森林声音，鸟鸣与风声的自然和谐',
       coverImage: 'assets/images/whitenoise/forest.jpg',
-      audioPath: 'audios/white_noise/forest.mp3',
-      duration: 3600, // 1小时
+      audioPath: 'voice/bzy/forest.mp3',
+      duration: 90, // 90秒
       type: AudioType.whiteNoise,
       category: '自然声音',
     ),
@@ -226,7 +226,7 @@ class DataService {
     {
       'type': 'whitenoise',
       'title': '雨声白噪音',
-      'duration': '30分钟',
+      'duration': '90秒',
       'image': 'assets/images/whitenoise/rain.jpg',
       'audioId': 'whitenoise_1',
     },

@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../constants/app_colors.dart';
+import '../../services/audio_service.dart';
 
 class FloatingPlayer extends StatefulWidget {
   final Map<String, dynamic> currentTrack;
@@ -28,12 +29,17 @@ class _FloatingPlayerState extends State<FloatingPlayer>
     with SingleTickerProviderStateMixin {
   late AnimationController _animationController;
   late Animation<double> _slideAnimation;
-  int _currentSeconds = 0; // 当前播放时间（秒）
-  Timer? _progressTimer;
+  late AudioService _audioService;
+  Duration _currentPosition = Duration.zero;
+  Duration _totalDuration = Duration.zero;
+  StreamSubscription<Duration>? _positionSubscription;
+  StreamSubscription<Duration>? _durationSubscription;
 
   @override
   void initState() {
     super.initState();
+    _audioService = AudioService.getInstance();
+    
     _animationController = AnimationController(
       duration: const Duration(milliseconds: 400),
       vsync: this,
@@ -48,55 +54,50 @@ class _FloatingPlayerState extends State<FloatingPlayer>
     ));
 
     _animationController.forward();
-    _startProgressTimer();
+    _setupAudioStreams();
+  }
+
+  void _setupAudioStreams() {
+    // 监听播放位置变化
+    _positionSubscription = _audioService.positionStream.listen((position) {
+      if (mounted) {
+        setState(() {
+          _currentPosition = position;
+        });
+      }
+    });
+
+    // 监听音频总时长变化
+    _durationSubscription = _audioService.durationStream.listen((duration) {
+      if (mounted) {
+        setState(() {
+          _totalDuration = duration;
+        });
+      }
+    });
+
+    // 初始化当前值
+    _currentPosition = _audioService.currentPosition;
+    _totalDuration = _audioService.totalDuration;
   }
 
   @override
   void dispose() {
     _animationController.dispose();
-    _progressTimer?.cancel();
+    _positionSubscription?.cancel();
+    _durationSubscription?.cancel();
     super.dispose();
   }
 
   @override
   void didUpdateWidget(FloatingPlayer oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.isPlaying != oldWidget.isPlaying) {
-      if (widget.isPlaying) {
-        _startProgressTimer();
-      } else {
-        _stopProgressTimer();
-      }
-    }
+    // 当切换音频时，重新获取时长信息
     if (widget.currentTrack != oldWidget.currentTrack) {
-      setState(() {
-        _currentSeconds = 0;
-      });
-      if (widget.isPlaying) {
-        _startProgressTimer();
-      }
+      // 重新获取当前的播放状态
+      _currentPosition = _audioService.currentPosition;
+      _totalDuration = _audioService.totalDuration;
     }
-  }
-
-  void _startProgressTimer() {
-    _progressTimer?.cancel();
-    if (widget.isPlaying) {
-      _progressTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-        if (mounted && widget.isPlaying) {
-          setState(() {
-            _currentSeconds++;
-            // 模拟5分钟音频，循环播放
-            if (_currentSeconds >= 300) {
-              _currentSeconds = 0;
-            }
-          });
-        }
-      });
-    }
-  }
-
-  void _stopProgressTimer() {
-    _progressTimer?.cancel();
   }
 
   void _handleClose() async {
@@ -189,7 +190,7 @@ class _FloatingPlayerState extends State<FloatingPlayer>
                             ),
                             const SizedBox(height: 2),
                             Text(
-                              '${_formatTime(_currentSeconds)} / ${_getTotalDuration()}',
+                              '${_formatDuration(_currentPosition)} / ${_formatDuration(_totalDuration)}',
                               style: const TextStyle(
                                 fontSize: 12,
                                 color: AppColors.textHint,
@@ -275,23 +276,9 @@ class _FloatingPlayerState extends State<FloatingPlayer>
   }
 
   // 格式化时间显示 (mm:ss)
-  String _formatTime(int seconds) {
-    int minutes = seconds ~/ 60;
-    int remainingSeconds = seconds % 60;
-    return '${minutes.toString().padLeft(2, '0')}:${remainingSeconds.toString().padLeft(2, '0')}';
-  }
-
-  // 获取总时长
-  String _getTotalDuration() {
-    // 从音频数据中获取时长，如果没有则默认5分钟
-    String? duration = widget.currentTrack['duration'];
-    if (duration != null) {
-      // 解析时长字符串，如 "5分钟" -> "05:00"
-      if (duration.contains('分钟')) {
-        int minutes = int.tryParse(duration.replaceAll('分钟', '')) ?? 5;
-        return _formatTime(minutes * 60);
-      }
-    }
-    return '05:00'; // 默认5分钟
+  String _formatDuration(Duration duration) {
+    final minutes = duration.inMinutes;
+    final seconds = duration.inSeconds % 60;
+    return '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
   }
 } 
