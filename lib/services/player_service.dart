@@ -45,6 +45,7 @@ class PlayerService extends ChangeNotifier {
           _isPlaying = false;
           break;
       }
+      print('PlayerService: 状态变化 $state, _isPlaying: $_isPlaying');
       if (wasPlaying != _isPlaying) {
         notifyListeners();
       }
@@ -80,16 +81,19 @@ class PlayerService extends ChangeNotifier {
     
     if (audioItem != null) {
       await _audioService.play(audioItem);
-      _isPlaying = true;
+      // 不在这里设置 _isPlaying，让监听器处理
     }
   }
 
   // 播放/暂停切换
   void togglePlayPause() {
-    if (_isPlaying) {
+    if (_audioService.playerState == PlayerState.playing) {
       _audioService.pause();
-    } else {
+    } else if (_audioService.playerState == PlayerState.paused) {
       _audioService.resume();
+    } else if (_currentTrack != null) {
+      // 如果停止状态，重新播放当前音频
+      _playCurrentAudio();
     }
     // 状态会通过监听器自动更新
   }

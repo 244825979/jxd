@@ -33,9 +33,11 @@ class _FloatingPlayerState extends State<FloatingPlayer>
   Duration _currentPosition = Duration.zero;
   Duration _totalDuration = Duration.zero;
   bool _isLooping = true;
+  bool _localIsPlaying = false; // 本地播放状态
   StreamSubscription<Duration>? _positionSubscription;
   StreamSubscription<Duration>? _durationSubscription;
   StreamSubscription<bool>? _loopSubscription;
+  StreamSubscription<PlayerState>? _playerStateSubscription;
 
   @override
   void initState() {
@@ -87,10 +89,22 @@ class _FloatingPlayerState extends State<FloatingPlayer>
       }
     });
 
+    // 监听播放状态变化
+    _playerStateSubscription = _audioService.playerStateStream.listen((state) {
+      if (mounted) {
+        bool newPlaying = state == PlayerState.playing;
+        print('FloatingPlayer: 状态变化 $state, _localIsPlaying: $newPlaying, widget.isPlaying: ${widget.isPlaying}');
+        setState(() {
+          _localIsPlaying = newPlaying;
+        });
+      }
+    });
+
     // 初始化当前值
     _currentPosition = _audioService.currentPosition;
     _totalDuration = _audioService.totalDuration;
     _isLooping = _audioService.isLooping;
+    _localIsPlaying = _audioService.playerState == PlayerState.playing;
   }
 
   @override
@@ -99,17 +113,19 @@ class _FloatingPlayerState extends State<FloatingPlayer>
     _positionSubscription?.cancel();
     _durationSubscription?.cancel();
     _loopSubscription?.cancel();
+    _playerStateSubscription?.cancel();
     super.dispose();
   }
 
   @override
   void didUpdateWidget(FloatingPlayer oldWidget) {
     super.didUpdateWidget(oldWidget);
-    // 当切换音频时，重新获取时长信息
+    // 当切换音频时，重新获取状态信息
     if (widget.currentTrack != oldWidget.currentTrack) {
       // 重新获取当前的播放状态
       _currentPosition = _audioService.currentPosition;
       _totalDuration = _audioService.totalDuration;
+      _localIsPlaying = _audioService.playerState == PlayerState.playing;
     }
   }
 
@@ -176,7 +192,7 @@ class _FloatingPlayerState extends State<FloatingPlayer>
                             ],
                           ),
                           child: Icon(
-                            widget.isPlaying ? Icons.pause : Icons.play_arrow,
+                            _localIsPlaying ? Icons.pause : Icons.play_arrow,
                             color: Colors.white,
                             size: 24,
                           ),
