@@ -45,7 +45,6 @@ class PlayerService extends ChangeNotifier {
           _isPlaying = false;
           break;
       }
-      print('PlayerService: 状态变化 $state, _isPlaying: $_isPlaying');
       if (wasPlaying != _isPlaying) {
         notifyListeners();
       }

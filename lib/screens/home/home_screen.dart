@@ -203,33 +203,35 @@ class _HomeScreenState extends State<HomeScreen> {
                   color: AppColors.textPrimary,
                 ),
               ),
-                             Container(
-                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                 decoration: BoxDecoration(
-                   color: AppColors.accent.withOpacity(0.1),
-                   borderRadius: BorderRadius.circular(12),
-                 ),
-                 child: Text(
-                   '平均 ${avgMood.toStringAsFixed(1)}',
-                   style: const TextStyle(
-                     fontSize: 12,
-                     fontWeight: FontWeight.w500,
-                     color: AppColors.accent,
-                   ),
-                 ),
-               ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: AppColors.accent.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  '平均 ${avgMood.toStringAsFixed(1)}',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                    color: AppColors.accent,
+                  ),
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 20),
           
           // 柱状图
           SizedBox(
-            height: 80,
+            height: 100,
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
               crossAxisAlignment: CrossAxisAlignment.end,
               children: moodData.map((data) {
-                return _buildMoodBar(data);
+                return Expanded(
+                  child: _buildMoodBar(data),
+                );
               }).toList(),
             ),
           ),
@@ -237,12 +239,12 @@ class _HomeScreenState extends State<HomeScreen> {
           const SizedBox(height: 16),
           
           // 统计信息
-                     Container(
-             padding: const EdgeInsets.all(16),
-             decoration: BoxDecoration(
-               color: AppColors.accent.withOpacity(0.15),
-               borderRadius: BorderRadius.circular(12),
-             ),
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: AppColors.accent.withOpacity(0.15),
+              borderRadius: BorderRadius.circular(12),
+            ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
@@ -258,15 +260,15 @@ class _HomeScreenState extends State<HomeScreen> {
           // 记录按钮
           SizedBox(
             width: double.infinity,
-            child:              ElevatedButton.icon(
-               onPressed: () {
-                 Navigator.of(context).push(
-                   MaterialPageRoute(
-                     builder: (context) => const MoodRecordsScreen(),
-                   ),
-                 );
-               },
-                             icon: const Icon(Icons.edit, color: AppColors.accent, size: 18),
+            child: ElevatedButton.icon(
+              onPressed: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) => const MoodRecordsScreen(),
+                  ),
+                );
+              },
+              icon: const Icon(Icons.edit, color: AppColors.accent, size: 18),
                label: const Text(
                  '查看情绪指数',
                  style: TextStyle(
@@ -290,7 +292,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-    // 构建单个心情柱子
+  // 构建单个心情柱子
   Widget _buildMoodBar(Map<String, dynamic> data) {
     final mood = data['mood'] as double;
     final isToday = data['isToday'] as bool;
@@ -300,6 +302,7 @@ class _HomeScreenState extends State<HomeScreen> {
     if (!hasRecord) {
       return Column(
         mainAxisAlignment: MainAxisAlignment.end,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           // 占位柱子
           Container(
@@ -307,7 +310,7 @@ class _HomeScreenState extends State<HomeScreen> {
             height: 15,
             decoration: BoxDecoration(
               color: AppColors.textHint.withOpacity(0.2),
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(4),
             ),
             child: const Center(
               child: Text(
@@ -319,12 +322,13 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 6),
           // 日期标签
           Text(
             data['dayLabel'],
             style: TextStyle(
               fontSize: 10,
+              height: 1.0,
               fontWeight: isToday ? FontWeight.w600 : FontWeight.normal,
               color: isToday ? AppColors.accent : AppColors.textHint,
             ),
@@ -333,7 +337,7 @@ class _HomeScreenState extends State<HomeScreen> {
       );
     }
     
-    final barHeight = (mood / 10.0) * 50 + 10; // 最小10px，最大60px
+    final barHeight = (mood / 10.0) * 55 + 10; // 最小10px，最大65px
     
     Color barColor;
     if (mood >= 8.0) {
@@ -350,22 +354,26 @@ class _HomeScreenState extends State<HomeScreen> {
     
     return Column(
       mainAxisAlignment: MainAxisAlignment.end,
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         // 柱子
-        Container(
-          width: 24,
-          height: barHeight,
-          decoration: BoxDecoration(
-            color: barColor,
-            borderRadius: BorderRadius.circular(12),
+        Flexible(
+          child: Container(
+            width: 24,
+            height: barHeight,
+            decoration: BoxDecoration(
+              color: barColor,
+              borderRadius: BorderRadius.circular(4),
+            ),
           ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 6),
         // 日期标签
         Text(
           data['dayLabel'],
           style: TextStyle(
             fontSize: 10,
+            height: 1.0,
             fontWeight: isToday ? FontWeight.w600 : FontWeight.normal,
             color: isToday ? AppColors.accent : AppColors.textHint,
           ),

@@ -93,7 +93,6 @@ class _FloatingPlayerState extends State<FloatingPlayer>
     _playerStateSubscription = _audioService.playerStateStream.listen((state) {
       if (mounted) {
         bool newPlaying = state == PlayerState.playing;
-        print('FloatingPlayer: 状态变化 $state, _localIsPlaying: $newPlaying, widget.isPlaying: ${widget.isPlaying}');
         setState(() {
           _localIsPlaying = newPlaying;
         });
