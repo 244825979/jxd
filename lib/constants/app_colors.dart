@@ -15,6 +15,10 @@ class AppColors {
   static const Color cardBackground = Colors.white;
   static const Color cardShadow = Color(0x0D000000);
   
+  // 边框和阴影
+  static const Color borderColor = Color(0xFFE0E0E0);
+  static const Color shadowColor = Color(0xFF000000);
+  
   // 状态颜色
   static const Color success = Color(0xFF4CAF50);
   static const Color warning = Color(0xFFFF9800);

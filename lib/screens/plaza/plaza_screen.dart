@@ -4,6 +4,8 @@ import '../../constants/app_strings.dart';
 import '../../services/data_service.dart';
 import '../../models/post.dart';
 import '../../widgets/common/custom_card.dart';
+import 'publish_post_screen.dart';
+import 'post_detail_screen.dart';
 
 class PlazaScreen extends StatefulWidget {
   const PlazaScreen({super.key});
@@ -13,14 +15,14 @@ class PlazaScreen extends StatefulWidget {
 }
 
 class _PlazaScreenState extends State<PlazaScreen> {
-  late DataService _dataService;
+  final DataService _dataService = DataService.getInstance();
   List<Post> _posts = [];
   List<String> _hotTopics = [];
+  String? _selectedTopic;
 
   @override
   void initState() {
     super.initState();
-    _dataService = DataService.getInstance();
     _loadData();
   }
 
@@ -74,7 +76,16 @@ class _PlazaScreenState extends State<PlazaScreen> {
                     children: _hotTopics.take(6).toList().asMap().entries.map((entry) {
                       final index = entry.key;
                       final topic = entry.value;
-                      return _buildTopicTag(topic, index);
+                      return _buildTopicTag(
+                        topic, 
+                        index,
+                        isSelected: _selectedTopic == topic,
+                        onTap: () {
+                          setState(() {
+                            _selectedTopic = _selectedTopic == topic ? null : topic;
+                          });
+                        },
+                      );
                     }).toList(),
                   ),
                   const SizedBox(height: 16),
@@ -83,16 +94,23 @@ class _PlazaScreenState extends State<PlazaScreen> {
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton.icon(
-                      onPressed: () {
-                        // TODO: 导航到发布页面
-                      },
+                      onPressed: _selectedTopic != null ? () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => PublishPostScreen(
+                              selectedTopic: _selectedTopic!,
+                            ),
+                          ),
+                        );
+                      } : null,
                       icon: const Icon(Icons.edit, color: Colors.white),
-                      label: const Text(
-                        AppStrings.anonymousPost,
-                        style: TextStyle(color: Colors.white),
+                      label: Text(
+                        _selectedTopic != null ? '发布到 #$_selectedTopic' : '请先选择话题',
+                        style: const TextStyle(color: Colors.white),
                       ),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.accent,
+                        backgroundColor: _selectedTopic != null ? AppColors.accent : AppColors.textSecondary,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(20),
                         ),
@@ -113,9 +131,23 @@ class _PlazaScreenState extends State<PlazaScreen> {
   }
 
   Widget _buildPostCard(Post post) {
-    return CustomCard(
-      margin: const EdgeInsets.only(bottom: 16),
-      child: Column(
+    return GestureDetector(
+      onTap: () async {
+        final result = await Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => PostDetailScreen(post: post),
+          ),
+        );
+        
+        // 如果从详情页返回，刷新数据
+        if (result == true) {
+          _loadData();
+        }
+      },
+      child: CustomCard(
+        margin: const EdgeInsets.only(bottom: 16),
+        child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // 用户信息
@@ -218,15 +250,8 @@ class _PlazaScreenState extends State<PlazaScreen> {
             const SizedBox(height: 12),
             Wrap(
               spacing: 6,
-              children: post.tags.map((tag) => 
-                Text(
-                  '#$tag',
-                  style: const TextStyle(
-                    color: AppColors.accent,
-                    fontSize: 12,
-                  ),
-                ),
-              ).toList(),
+              runSpacing: 6,
+              children: post.tags.map((tag) => _buildPostTopicTag(tag)).toList(),
             ),
           ],
           
@@ -240,29 +265,34 @@ class _PlazaScreenState extends State<PlazaScreen> {
                 icon: post.isLiked ? Icons.favorite : Icons.favorite_border,
                 label: post.likeCount.toString(),
                 color: post.isLiked ? Colors.red : AppColors.textSecondary,
-                onTap: () {
-                  // TODO: 点赞功能
-                },
+                onTap: () => _toggleLike(post.id),
               ),
               _buildActionButton(
                 icon: Icons.chat_bubble_outline,
                 label: post.commentCount.toString(),
                 color: AppColors.textSecondary,
-                onTap: () {
-                  // TODO: 评论功能
+                onTap: () async {
+                  final result = await Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => PostDetailScreen(post: post),
+                    ),
+                  );
+                  if (result == true) {
+                    _loadData();
+                  }
                 },
               ),
               _buildActionButton(
                 icon: post.isBookmarked ? Icons.bookmark : Icons.bookmark_border,
                 label: '',
                 color: post.isBookmarked ? AppColors.accent : AppColors.textSecondary,
-                onTap: () {
-                  // TODO: 收藏功能
-                },
+                onTap: () => _toggleBookmark(post.id),
               ),
             ],
           ),
         ],
+        ),
       ),
     );
   }
@@ -294,49 +324,92 @@ class _PlazaScreenState extends State<PlazaScreen> {
     );
   }
 
-  // 构建话题标签，为每个话题设置不同的暖色系颜色
-  Widget _buildTopicTag(String topic, int index) {
-    // 定义6种淡暖色系颜色
-    final List<Color> warmColors = [
-      const Color(0xFFFFCDD2), // 淡粉色
-      const Color(0xFFFFE0B2), // 淡橙色
-      const Color(0xFFFFF9C4), // 淡黄色
-      const Color(0xFFC8E6C9), // 淡绿色
-      const Color(0xFFDCEDC8), // 浅淡绿色
-      const Color(0xFFFFE0B2), // 淡橙色2
-    ];
+  // 点赞功能
+  void _toggleLike(String postId) {
+    final newLikeStatus = _dataService.togglePostLike(postId);
     
-    final List<Color> textColors = [
-      const Color(0xFFD32F2F), // 深粉红
-      const Color(0xFFE65100), // 深橙色
-      const Color(0xFFF57C00), // 深黄色
-      const Color(0xFF388E3C), // 深绿色
-      const Color(0xFF2E7D32), // 深绿色2
-      const Color(0xFFEF6C00), // 深橙色2
-    ];
-    
-    final bgColor = warmColors[index % warmColors.length];
-    final textColor = textColors[index % textColors.length];
-    
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(
-        color: bgColor,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: bgColor.withOpacity(0.3),
-            blurRadius: 4,
-            offset: const Offset(0, 2),
-          ),
-        ],
+    setState(() {
+      // 刷新帖子列表以更新UI
+      _posts = _dataService.getPosts();
+    });
+
+    // 显示提示信息
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(newLikeStatus ? '已点赞' : '已取消点赞'),
+        backgroundColor: newLikeStatus ? Colors.red.shade400 : AppColors.textSecondary,
+        duration: const Duration(milliseconds: 800),
       ),
-      child: Text(
-        '#$topic',
-        style: TextStyle(
-          color: textColor,
-          fontSize: 12,
-          fontWeight: FontWeight.w600,
+    );
+  }
+
+  // 收藏功能
+  void _toggleBookmark(String postId) {
+    final newBookmarkStatus = _dataService.togglePostBookmark(postId);
+    
+    setState(() {
+      // 刷新帖子列表以更新UI
+      _posts = _dataService.getPosts();
+    });
+
+    // 显示提示信息
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(newBookmarkStatus ? '已收藏' : '已取消收藏'),
+        backgroundColor: newBookmarkStatus ? AppColors.accent : AppColors.textSecondary,
+        duration: const Duration(milliseconds: 800),
+      ),
+    );
+  }
+
+  // 为每个话题分配暖色系颜色的映射
+  Color _getTopicColor(String topic) {
+    final topicColors = {
+      '今日心情': const Color(0xFFE67E22), // 橙色
+      '孤独瞬间': const Color(0xFFD35400), // 深橙色
+      '来自深夜的我': const Color(0xFF8E44AD), // 紫色
+      '治愈系语录': const Color(0xFF27AE60), // 绿色
+      '情感树洞': const Color(0xFFE74C3C), // 红色
+      '温暖时刻': const Color(0xFFF39C12), // 金色
+    };
+    return topicColors[topic] ?? const Color(0xFFE67E22);
+  }
+
+  // 构建动态内容中的话题标签，使用暖色系
+  Widget _buildPostTopicTag(String topic) {
+    final color = _getTopicColor(topic);
+    return Text(
+      '#$topic',
+      style: TextStyle(
+        color: color,
+        fontSize: 12,
+        fontWeight: FontWeight.w500,
+      ),
+    );
+  }
+
+  // 构建话题标签，简洁样式（用于发布界面的话题选择）
+  Widget _buildTopicTag(String topic, int index, {bool isSelected = false, VoidCallback? onTap}) {
+    final color = _getTopicColor(topic);
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          border: Border.all(
+            color: isSelected ? color : color.withOpacity(0.3),
+            width: 1,
+          ),
+          borderRadius: BorderRadius.circular(20),
+          color: isSelected ? color.withOpacity(0.1) : Colors.transparent,
+        ),
+        child: Text(
+          '#$topic',
+          style: TextStyle(
+            color: isSelected ? color : color,
+            fontSize: 12,
+            fontWeight: FontWeight.w500,
+          ),
         ),
       ),
     );

@@ -1,6 +1,9 @@
 import '../models/audio_item.dart';
 import '../models/post.dart';
+import '../models/comment.dart';
 import '../models/notification.dart';
+import '../models/user.dart';
+import '../models/user_data.dart';
 import '../constants/app_images.dart';
 
 class DataService {
@@ -8,7 +11,11 @@ class DataService {
   DataService._();
 
   static DataService getInstance() {
-    return _instance ??= DataService._();
+    if (_instance == null) {
+      _instance = DataService._();
+      _instance!._initializeCommentsData();
+    }
+    return _instance!;
   }
 
   // 静态音频数据
@@ -127,8 +134,14 @@ class DataService {
     ),
   ];
 
+  // 用户数据实例
+  UserData _userData = UserData();
+
+  // 评论数据存储 - 按 postId 分组存储评论
+  final Map<String, List<Comment>> _comments = {};
+
   // 静态帖子数据 - 图片和纯文字动态交错排列
-  final List<Post> _posts = [
+  List<Post> _posts = [
     // 1. 带图片
     Post(
       id: 'post_1',
@@ -139,18 +152,18 @@ class DataService {
       authorAvatar: 'assets/images/avatars/user_1.png',
       authorName: '阳光小暖',
       likeCount: 12,
-      commentCount: 5,
+      commentCount: 0, // 将被动态设置
     ),
     // 2. 纯文字
     Post(
       id: 'post_2',
       content: '今天想起了一句话："你要做一个不动声色的大人了。不准情绪化，不准偷偷想念，不准回头看。" 但有时候，允许自己脆弱一下，也没关系的。',
-      tags: ['情感树洞', '成长'],
+      tags: ['情感树洞'],
       createdAt: DateTime.now().subtract(const Duration(hours: 1)),
       authorAvatar: 'assets/images/avatars/user_2.png',
       authorName: '温柔的风',
       likeCount: 67,
-      commentCount: 23,
+      commentCount: 0, // 将被动态设置
       isBookmarked: true,
     ),
     // 3. 带图片
@@ -158,134 +171,130 @@ class DataService {
       id: 'post_3',
       content: '深夜的街道，霓虹灯闪烁，内心却异常平静。这个城市的夜晚总是那么治愈。',
       imageUrl: 'assets/images/dongtai/dongtai_2.png',
-      tags: ['来自深夜的我', '治愈系语录'],
+      tags: ['来自深夜的我'],
       createdAt: DateTime.now().subtract(const Duration(hours: 2)),
       authorAvatar: 'assets/images/avatars/user_3.png',
       authorName: '夜色温柔',
       likeCount: 28,
-      commentCount: 12,
-      isLiked: true,
+      commentCount: 0, // 将被动态设置
     ),
     // 4. 带图片
     Post(
       id: 'post_4',
       content: '春天的第一朵花开了，就像心情突然明亮起来。生活总是在不经意间给我们小惊喜。',
       imageUrl: 'assets/images/dongtai/dongtai_3.png',
-      tags: ['温暖时刻', '今日心情'],
+      tags: ['温暖时刻'],
       createdAt: DateTime.now().subtract(const Duration(hours: 3)),
       authorAvatar: 'assets/images/avatars/user_4.png',
       authorName: '春暖花开的心',
       likeCount: 45,
-      commentCount: 18,
+      commentCount: 0, // 将被动态设置
       isBookmarked: true,
     ),
     // 5. 纯文字
     Post(
       id: 'post_5',
       content: '失眠的夜晚，脑海里播放着白天的画面。有些话想说却不知道对谁说，有些情感想表达却找不到合适的方式。',
-      tags: ['来自深夜的我', '失眠'],
+      tags: ['来自深夜的我'],
       createdAt: DateTime.now().subtract(const Duration(hours: 4)),
       authorAvatar: 'assets/images/avatars/user_5.png',
       authorName: '深夜听雨人',
       likeCount: 89,
-      commentCount: 35,
-      isLiked: true,
+      commentCount: 0, // 将被动态设置
     ),
     // 6. 带图片
     Post(
       id: 'post_6',
       content: '雨后的天空格外清澈，就像洗涤过的心灵。有时候，眼泪过后就是彩虹。',
       imageUrl: 'assets/images/dongtai/dongtai_4.png',
-      tags: ['情感树洞', '治愈系语录'],
+      tags: ['情感树洞'],
       createdAt: DateTime.now().subtract(const Duration(hours: 5)),
       authorAvatar: 'assets/images/avatars/user_6.png',
       authorName: '雨后彩虹',
       likeCount: 32,
-      commentCount: 8,
+      commentCount: 0, // 将被动态设置
     ),
     // 7. 带图片
     Post(
       id: 'post_7',
       content: '咖啡店的午后，阳光透过玻璃窗洒在桌案上。这一刻，时间好像停止了。',
       imageUrl: 'assets/images/dongtai/dongtai_5.png',
-      tags: ['孤独瞬间', '温暖时刻'],
+      tags: ['孤独瞬间'],
       createdAt: DateTime.now().subtract(const Duration(hours: 6)),
       authorAvatar: 'assets/images/avatars/user_7.png',
       authorName: '午后咖啡香',
       likeCount: 67,
-      commentCount: 23,
-      isLiked: true,
+      commentCount: 0, // 将被动态设置
       isBookmarked: true,
     ),
     // 8. 纯文字
     Post(
       id: 'post_8',
       content: '学会了冥想之后，感觉世界都安静了。原来内心的平静，不是没有波澜，而是学会了与波澜共处。',
-      tags: ['冥想', '成长'],
+      tags: ['治愈系语录'],
       createdAt: DateTime.now().subtract(const Duration(hours: 7)),
       authorAvatar: 'assets/images/avatars/user_8.png',
       authorName: '静心守望者',
       likeCount: 52,
-      commentCount: 17,
+      commentCount: 0, // 将被动态设置
     ),
     // 9. 带图片
     Post(
       id: 'post_9',
       content: '夜晚的书桌，一盏台灯，一本书。简单的快乐，纯粹的满足。',
       imageUrl: 'assets/images/dongtai/dongtai_6.png',
-      tags: ['来自深夜的我', '成长'],
+      tags: ['来自深夜的我'],
       createdAt: DateTime.now().subtract(const Duration(hours: 8)),
       authorAvatar: 'assets/images/avatars/user_9.png',
       authorName: '灯下读书人',
       likeCount: 19,
-      commentCount: 6,
+      commentCount: 0, // 将被动态设置
     ),
     // 10. 带图片
     Post(
       id: 'post_10',
       content: '海边的日落，橙红色的天空倒映在水面上。大自然总是最好的心理医生。',
       imageUrl: 'assets/images/dongtai/dongtai_7.png',
-      tags: ['治愈系语录', '温暖时刻'],
+      tags: ['治愈系语录'],
       createdAt: DateTime.now().subtract(const Duration(hours: 9)),
       authorAvatar: 'assets/images/avatars/user_10.png',
       authorName: '海边拾贝者',
       likeCount: 89,
-      commentCount: 34,
-      isLiked: true,
+      commentCount: 0, // 将被动态设置
     ),
     // 11. 纯文字
     Post(
       id: 'post_11',
       content: '压力山大的一周终于结束了。虽然很累，但也收获了很多。成长的路上，每一步都算数。',
-      tags: ['压力', '成长'],
+      tags: ['今日心情'],
       createdAt: DateTime.now().subtract(const Duration(hours: 10)),
       authorAvatar: 'assets/images/avatars/user_11.png',
       authorName: '成长路上的我',
       likeCount: 34,
-      commentCount: 11,
+      commentCount: 0, // 将被动态设置
     ),
     // 12. 带图片
     Post(
       id: 'post_12',
       content: '深夜的厨房，为自己煮一碗面。照顾好自己，也是一种爱的表达。',
       imageUrl: 'assets/images/dongtai/dongtai_8.png',
-      tags: ['来自深夜的我', '自我关爱'],
+      tags: ['来自深夜的我'],
       createdAt: DateTime.now().subtract(const Duration(hours: 11)),
       authorAvatar: 'assets/images/avatars/user_12.png',
       authorName: '暖心小厨',
       likeCount: 41,
-      commentCount: 15,
+      commentCount: 0, // 将被动态设置
     ),
     // 13. 纯文字
     Post(
       id: 'post_13',
       content: '突然想念小时候的无忧无虑，那时候快乐很简单，一颗糖果就能开心一整天。长大后才发现，简单的快乐最珍贵。',
-      tags: ['温暖时刻', '感悟'],
+      tags: ['温暖时刻'],
       createdAt: DateTime.now().subtract(const Duration(hours: 12)),
       authorAvatar: 'assets/images/avatars/user_13.png',
       authorName: '童心未泯',
       likeCount: 78,
-      commentCount: 26,
+      commentCount: 0, // 将被动态设置
       isBookmarked: true,
     ),
     // 14. 带图片
@@ -293,12 +302,12 @@ class DataService {
       id: 'post_14',
       content: '公园里的老夫妇，手牵着手散步。爱情最美的样子，大概就是这样吧。',
       imageUrl: 'assets/images/dongtai/dongtai_9.png',
-      tags: ['温暖时刻', '感悟'],
+      tags: ['温暖时刻'],
       createdAt: DateTime.now().subtract(const Duration(hours: 13)),
       authorAvatar: 'assets/images/avatars/user_14.png',
       authorName: '爱的见证者',
       likeCount: 76,
-      commentCount: 28,
+      commentCount: 0, // 将被动态设置
       isBookmarked: true,
     ),
     // 15. 带图片
@@ -306,109 +315,106 @@ class DataService {
       id: 'post_15',
       content: '雨夜，听着音乐，思绪飘远。有些情感，只有在这样的夜晚才敢释放。',
       imageUrl: 'assets/images/dongtai/dongtai_10.png',
-      tags: ['情感树洞', '来自深夜的我'],
+      tags: ['情感树洞'],
       createdAt: DateTime.now().subtract(const Duration(hours: 14)),
       authorAvatar: 'assets/images/avatars/user_15.png',
       authorName: '雨夜聆听者',
       likeCount: 53,
-      commentCount: 19,
-      isLiked: true,
+      commentCount: 0, // 将被动态设置
     ),
     // 16. 纯文字
     Post(
       id: 'post_16',
       content: '焦虑的时候，试着深呼吸，告诉自己："这也会过去的。" 没有什么是永恒的，包括痛苦。',
-      tags: ['焦虑', '治愈系语录'],
+      tags: ['情感树洞'],
       createdAt: DateTime.now().subtract(const Duration(hours: 15)),
       authorAvatar: 'assets/images/avatars/user_16.png',
       authorName: '心灵疗愈师',
       likeCount: 95,
-      commentCount: 31,
-      isLiked: true,
+      commentCount: 0, // 将被动态设置
     ),
     // 17. 带图片
     Post(
       id: 'post_17',
       content: '图书馆的安静角落，沉浸在书本的世界里。知识是最好的精神食粮。',
       imageUrl: 'assets/images/dongtai/dongtai_11.png',
-      tags: ['成长', '孤独瞬间'],
+      tags: ['孤独瞬间'],
       createdAt: DateTime.now().subtract(const Duration(hours: 16)),
       authorAvatar: 'assets/images/avatars/user_17.png',
       authorName: '书香墨韵',
       likeCount: 24,
-      commentCount: 7,
+      commentCount: 0, // 将被动态设置
     ),
     // 18. 带图片
     Post(
       id: 'post_18',
       content: '清晨的第一缕阳光，新的一天，新的希望。每一个黎明都是生命的礼物。',
       imageUrl: 'assets/images/dongtai/dongtai_12.png',
-      tags: ['今日心情', '温暖时刻'],
+      tags: ['今日心情'],
       createdAt: DateTime.now().subtract(const Duration(hours: 17)),
       authorAvatar: 'assets/images/avatars/user_18.png',
       authorName: '晨光追梦人',
       likeCount: 61,
-      commentCount: 22,
+      commentCount: 0, // 将被动态设置
       isBookmarked: true,
     ),
     // 19. 纯文字
     Post(
       id: 'post_19',
       content: '今天遇到了一个陌生人的微笑，瞬间感觉整个世界都亮了。原来善意是可以传递的，温暖是可以感染的。',
-      tags: ['温暖时刻', '今日心情'],
+      tags: ['温暖时刻'],
       createdAt: DateTime.now().subtract(const Duration(hours: 18)),
       authorAvatar: 'assets/images/avatars/user_19.png',
       authorName: '微笑传递者',
       likeCount: 61,
-      commentCount: 19,
+      commentCount: 0, // 将被动态设置
     ),
     // 20. 带图片
     Post(
       id: 'post_20',
       content: '小巷里的猫咪，慵懒地晒着太阳。简单的生活，纯真的快乐。',
       imageUrl: 'assets/images/dongtai/dongtai_13.png',
-      tags: ['温暖时刻', '治愈系语录'],
+      tags: ['温暖时刻'],
       createdAt: DateTime.now().subtract(const Duration(hours: 19)),
       authorAvatar: 'assets/images/avatars/user_20.png',
       authorName: '小巷猫咪友',
       likeCount: 38,
-      commentCount: 12,
-      isLiked: true,
+      commentCount: 0, // 将被动态设置
     ),
     // 21. 带图片
     Post(
       id: 'post_21',
       content: '夜晚的城市天际线，万家灯火。每一盏灯背后，都有一个故事。',
       imageUrl: 'assets/images/dongtai/dongtai_14.png',
-      tags: ['来自深夜的我', '感悟'],
+      tags: ['来自深夜的我'],
       createdAt: DateTime.now().subtract(const Duration(hours: 20)),
       authorAvatar: 'assets/images/avatars/user_21.png',
       authorName: '城市夜归人',
       likeCount: 47,
-      commentCount: 16,
+      commentCount: 0, // 将被动态设置
     ),
     // 22. 纯文字
     Post(
       id: 'post_22',
       content: '深夜的思考总是格外深刻。关于人生，关于梦想，关于那些还没有答案的问题。黑夜给了我们思考的时间。',
-      tags: ['来自深夜的我', '感悟'],
+      tags: ['来自深夜的我'],
       createdAt: DateTime.now().subtract(const Duration(hours: 21)),
       authorAvatar: 'assets/images/avatars/user_22.png',
       authorName: '深夜哲思者',
       likeCount: 44,
-      commentCount: 15,
+      commentCount: 0, // 将被动态设置
     ),
     // 23. 带图片
     Post(
       id: 'post_23',
       content: '森林里的小径，阳光透过树叶洒下斑驳的光影。大自然的怀抱最温暖。',
       imageUrl: 'assets/images/dongtai/dongtai_15.png',
-      tags: ['治愈系语录', '冥想'],
+      tags: ['治愈系语录'],
       createdAt: DateTime.now().subtract(const Duration(hours: 22)),
       authorAvatar: 'assets/images/avatars/user_23.png',
       authorName: '森林漫步者',
       likeCount: 72,
-      commentCount: 25,
+      commentCount: 0, // 将被动态设置
       isBookmarked: true,
     ),
     // 24. 带图片
@@ -416,23 +422,23 @@ class DataService {
       id: 'post_24',
       content: '窗台上的绿植，生机勃勃。照顾它们的过程，也是在治愈自己。',
       imageUrl: 'assets/images/dongtai/dongtai_16.png',
-      tags: ['温暖时刻', '自我关爱'],
+      tags: ['温暖时刻'],
       createdAt: DateTime.now().subtract(const Duration(hours: 23)),
       authorAvatar: 'assets/images/avatars/user_24.png',
       authorName: '绿植小园丁',
       likeCount: 29,
-      commentCount: 9,
+      commentCount: 0, // 将被动态设置
     ),
     // 25. 纯文字
     Post(
       id: 'post_25',
       content: '学会了倾听自己内心的声音，不再被外界的噪音干扰。原来，最重要的答案一直在我们心里。',
-      tags: ['情感树洞', '冥想'],
+      tags: ['情感树洞'],
       createdAt: DateTime.now().subtract(const Duration(days: 1)),
       authorAvatar: 'assets/images/avatars/user_25.png',
       authorName: '内心倾听者',
       likeCount: 58,
-      commentCount: 21,
+      commentCount: 0, // 将被动态设置
       isBookmarked: true,
     ),
     // 26. 带图片
@@ -440,38 +446,36 @@ class DataService {
       id: 'post_26',
       content: '山顶的云海，壮观而宁静。站在这里，所有的烦恼都显得那么渺小。',
       imageUrl: 'assets/images/dongtai/dongtai_17.png',
-      tags: ['感悟', '治愈系语录'],
+      tags: ['治愈系语录'],
       createdAt: DateTime.now().subtract(const Duration(days: 1, hours: 1)),
       authorAvatar: 'assets/images/avatars/user_26.png',
       authorName: '云海观星人',
       likeCount: 94,
-      commentCount: 31,
-      isLiked: true,
+      commentCount: 0, // 将被动态设置
     ),
     // 27. 带图片
     Post(
       id: 'post_27',
       content: '深夜的便利店，温暖的灯光。有时候，孤独也可以很温柔。',
       imageUrl: 'assets/images/dongtai/dongtai_18.png',
-      tags: ['来自深夜的我', '孤独瞬间'],
+      tags: ['来自深夜的我'],
       createdAt: DateTime.now().subtract(const Duration(days: 1, hours: 2)),
       authorAvatar: 'assets/images/avatars/user_27.png',
       authorName: '便利店常客',
       likeCount: 56,
-      commentCount: 20,
+      commentCount: 0, // 将被动态设置
       isBookmarked: true,
     ),
     // 28. 纯文字
     Post(
       id: 'post_28',
       content: '感谢每一个陪伴我走过低谷的人，包括那个在深夜里独自坚强的自己。我们都比想象中更勇敢。',
-      tags: ['感悟', '成长'],
+      tags: ['情感树洞'],
       createdAt: DateTime.now().subtract(const Duration(days: 1, hours: 3)),
       authorAvatar: 'assets/images/avatars/user_28.png',
       authorName: '勇敢的心',
       likeCount: 103,
-      commentCount: 38,
-      isLiked: true,
+      commentCount: 0, // 将被动态设置
       isBookmarked: true,
     ),
     // 29. 带图片
@@ -479,25 +483,24 @@ class DataService {
       id: 'post_29',
       content: '花园里的蝴蝶，翩翩起舞。生命的美好，就在这些小小的瞬间里。',
       imageUrl: 'assets/images/dongtai/dongtai_19.png',
-      tags: ['温暖时刻', '今日心情'],
+      tags: ['温暖时刻'],
       createdAt: DateTime.now().subtract(const Duration(days: 1, hours: 4)),
       authorAvatar: 'assets/images/avatars/user_29.png',
       authorName: '蝴蝶花语',
       likeCount: 43,
-      commentCount: 14,
+      commentCount: 0, // 将被动态设置
     ),
     // 30. 带图片
     Post(
       id: 'post_30',
       content: '星空下的帐篷，远离城市的喧嚣。在这里，可以听到自己内心最真实的声音。',
       imageUrl: 'assets/images/dongtai/dongtai_20.png',
-      tags: ['情感树洞', '冥想'],
+      tags: ['情感树洞'],
       createdAt: DateTime.now().subtract(const Duration(days: 1, hours: 5)),
       authorAvatar: 'assets/images/avatars/user_30.png',
       authorName: '星空守护者',
       likeCount: 81,
-      commentCount: 27,
-      isLiked: true,
+      commentCount: 0, // 将被动态设置
     ),
   ];
 
@@ -534,13 +537,6 @@ class DataService {
     '治愈系语录',
     '情感树洞',
     '温暖时刻',
-    '失眠',
-    '焦虑',
-    '压力',
-    '成长',
-    '冥想',
-    '感悟',
-    '自我关爱',
   ];
 
   // 推荐内容
@@ -649,10 +645,19 @@ class DataService {
         .toList();
   }
 
-  // 获取帖子列表
+  // 获取帖子列表（带用户点赞状态和实际评论数）
   List<Post> getPosts({int? limit}) {
     var posts = List<Post>.from(_posts);
     posts.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    
+    // 根据用户的点赞数据设置 isLiked 状态，并设置实际评论数
+    posts = posts.map((post) {
+      final commentsForPost = _comments[post.id] ?? [];
+      return post.copyWith(
+        isLiked: _userData.isPostLiked(post.id),
+        commentCount: commentsForPost.length,
+      );
+    }).toList();
     
     if (limit != null && limit > 0) {
       posts = posts.take(limit).toList();
@@ -661,10 +666,16 @@ class DataService {
     return posts;
   }
 
-  // 根据ID获取帖子
+  // 根据ID获取帖子（带用户点赞状态和实际评论数）
   Post? getPostById(String id) {
     try {
-      return _posts.firstWhere((post) => post.id == id);
+      final post = _posts.firstWhere((post) => post.id == id);
+      final commentsForPost = _comments[post.id] ?? [];
+      return post.copyWith(
+        isLiked: _userData.isPostLiked(post.id),
+        isBookmarked: _userData.isPostBookmarked(post.id),
+        commentCount: commentsForPost.length,
+      );
     } catch (e) {
       return null;
     }
@@ -841,6 +852,239 @@ class DataService {
       'content': content,
       'timestamp': DateTime.now(),
     });
+  }
+
+  // 当前用户数据
+  final User _currentUser = User(
+    id: 'user_2024001',
+    nickname: '温暖如风',
+    avatar: 'assets/images/avatars/user_15.png',
+    likeCount: 0,
+    collectionCount: 0,
+    postCount: 0,
+    joinDate: DateTime.now().subtract(const Duration(days: 1)),
+    mood: '今天心情不错',
+  );
+
+  // 获取当前用户信息
+  User getCurrentUser() {
+    // 计算实际的点赞、收藏、发布数量
+    final actualLikeCount = _userData.likedPosts.length;
+    final actualCollectionCount = _userData.bookmarkedPosts.length + _userData.favoriteAudios.length;
+    final actualPostCount = _userData.myPostIds.length;
+
+    return _currentUser.copyWith(
+      likeCount: actualLikeCount,
+      collectionCount: actualCollectionCount,
+      postCount: actualPostCount,
+    );
+  }
+
+  // 更新用户信息
+  User updateUser({
+    String? nickname,
+    String? avatar,
+    String? mood,
+  }) {
+    return _currentUser.copyWith(
+      nickname: nickname,
+      avatar: avatar,
+      mood: mood,
+    );
+  }
+
+  // 获取用户数据
+  UserData getUserData() {
+    return _userData;
+  }
+
+  // 切换动态点赞状态
+  bool togglePostLike(String postId) {
+    final isCurrentlyLiked = _userData.isPostLiked(postId);
+    
+    // 找到对应的动态并更新点赞数
+    final postIndex = _posts.indexWhere((post) => post.id == postId);
+    if (postIndex != -1) {
+      final currentPost = _posts[postIndex];
+      
+      if (isCurrentlyLiked) {
+        // 取消点赞
+        _userData = _userData.removeLikedPost(postId);
+        _posts[postIndex] = currentPost.copyWith(
+          likeCount: currentPost.likeCount - 1,
+        );
+        // 在实际应用中，这里会向服务器发送取消点赞请求
+        return false; // 返回新的点赞状态
+      } else {
+        // 点赞
+        _userData = _userData.addLikedPost(postId);
+        _posts[postIndex] = currentPost.copyWith(
+          likeCount: currentPost.likeCount + 1,
+        );
+        // 在实际应用中，这里会向服务器发送点赞请求
+        return true; // 返回新的点赞状态
+      }
+    }
+    
+    // 如果找不到动态，只更新用户数据
+    if (isCurrentlyLiked) {
+      _userData = _userData.removeLikedPost(postId);
+      return false;
+    } else {
+      _userData = _userData.addLikedPost(postId);
+      return true;
+    }
+  }
+
+  // 切换动态收藏状态
+  bool togglePostBookmark(String postId) {
+    final isCurrentlyBookmarked = _userData.isPostBookmarked(postId);
+    
+    if (isCurrentlyBookmarked) {
+      _userData = _userData.removeBookmarkedPost(postId);
+      return false;
+    } else {
+      _userData = _userData.addBookmarkedPost(postId);
+      return true;
+    }
+  }
+
+  // 获取我点赞的动态列表
+  List<Post> getLikedPosts() {
+    final likedPostIds = _userData.likedPosts;
+    final likedPosts = <Post>[];
+    
+    for (final postId in likedPostIds) {
+      final post = getPostById(postId);
+      if (post != null) {
+        likedPosts.add(post);
+      }
+    }
+    
+    // 按点赞时间排序（最近点赞的在前面）
+    likedPosts.sort((a, b) {
+      final aIndex = likedPostIds.indexOf(a.id);
+      final bIndex = likedPostIds.indexOf(b.id);
+      return bIndex.compareTo(aIndex);
+    });
+    
+    return likedPosts;
+  }
+
+  // 获取我收藏的动态列表
+  List<Post> getBookmarkedPosts() {
+    final bookmarkedPostIds = _userData.bookmarkedPosts;
+    final bookmarkedPosts = <Post>[];
+    
+    for (final postId in bookmarkedPostIds) {
+      final post = getPostById(postId);
+      if (post != null) {
+        bookmarkedPosts.add(post);
+      }
+    }
+    
+    return bookmarkedPosts;
+  }
+
+  // 获取指定动态的评论列表
+  List<Comment> getCommentsForPost(String postId) {
+    return List<Comment>.from(_comments[postId] ?? []);
+  }
+
+  // 添加评论
+  void addComment(String postId, Comment comment) {
+    if (_comments[postId] == null) {
+      _comments[postId] = [];
+    }
+    _comments[postId]!.add(comment);
+    
+    // 更新对应动态的评论数
+    final postIndex = _posts.indexWhere((post) => post.id == postId);
+    if (postIndex != -1) {
+      final currentPost = _posts[postIndex];
+      _posts[postIndex] = currentPost.copyWith(
+        commentCount: _comments[postId]!.length,
+      );
+    }
+  }
+
+  // 删除评论
+  void removeComment(String postId, String commentId) {
+    if (_comments[postId] != null) {
+      _comments[postId]!.removeWhere((comment) => comment.id == commentId);
+      
+      // 更新对应动态的评论数
+      final postIndex = _posts.indexWhere((post) => post.id == postId);
+      if (postIndex != -1) {
+        final currentPost = _posts[postIndex];
+        _posts[postIndex] = currentPost.copyWith(
+          commentCount: _comments[postId]!.length,
+        );
+      }
+    }
+  }
+
+  // 初始化一些示例评论数据
+  void _initializeCommentsData() {
+    // 为一些动态添加示例评论
+    _comments['post_1'] = [
+      Comment(
+        id: 'comment_1_1',
+        postId: 'post_1',
+        authorName: '温柔的夜',
+        authorAvatar: 'assets/images/avatars/user_8.png',
+        content: '很有共鸣，有时候我们都需要给自己一个拥抱。',
+        createdAt: DateTime.now().subtract(const Duration(hours: 2)),
+        likeCount: 5,
+        isLiked: false,
+      ),
+      Comment(
+        id: 'comment_1_2',
+        postId: 'post_1',
+        authorName: '星光点点',
+        authorAvatar: 'assets/images/avatars/user_12.png',
+        content: '阳光总会出现的，坚持住！',
+        createdAt: DateTime.now().subtract(const Duration(hours: 1)),
+        likeCount: 3,
+        isLiked: false,
+      ),
+    ];
+
+    _comments['post_2'] = [
+      Comment(
+        id: 'comment_2_1',
+        postId: 'post_2',
+        authorName: '微笑阳光',
+        authorAvatar: 'assets/images/avatars/user_5.png',
+        content: '这段话很有感触，有时候脆弱也是一种勇敢。',
+        createdAt: DateTime.now().subtract(const Duration(hours: 3)),
+        likeCount: 8,
+        isLiked: false,
+      ),
+    ];
+
+    _comments['post_3'] = [
+      Comment(
+        id: 'comment_3_1',
+        postId: 'post_3',
+        authorName: '安静的猫',
+        authorAvatar: 'assets/images/avatars/user_9.png',
+        content: '深夜的街道确实很治愈，我也喜欢这样的时刻。',
+        createdAt: DateTime.now().subtract(const Duration(hours: 1, minutes: 30)),
+        likeCount: 4,
+        isLiked: false,
+      ),
+      Comment(
+        id: 'comment_3_2',
+        postId: 'post_3',
+        authorName: '夜晚行者',
+        authorAvatar: 'assets/images/avatars/user_14.png',
+        content: '城市的夜晚有种特别的魅力',
+        createdAt: DateTime.now().subtract(const Duration(minutes: 45)),
+        likeCount: 2,
+        isLiked: false,
+      ),
+    ];
   }
 
   // 模拟AI回复
