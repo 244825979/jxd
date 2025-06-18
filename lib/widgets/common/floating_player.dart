@@ -32,8 +32,10 @@ class _FloatingPlayerState extends State<FloatingPlayer>
   late AudioService _audioService;
   Duration _currentPosition = Duration.zero;
   Duration _totalDuration = Duration.zero;
+  bool _isLooping = true;
   StreamSubscription<Duration>? _positionSubscription;
   StreamSubscription<Duration>? _durationSubscription;
+  StreamSubscription<bool>? _loopSubscription;
 
   @override
   void initState() {
@@ -76,9 +78,19 @@ class _FloatingPlayerState extends State<FloatingPlayer>
       }
     });
 
+    // 监听循环播放状态变化
+    _loopSubscription = _audioService.loopStream.listen((isLooping) {
+      if (mounted) {
+        setState(() {
+          _isLooping = isLooping;
+        });
+      }
+    });
+
     // 初始化当前值
     _currentPosition = _audioService.currentPosition;
     _totalDuration = _audioService.totalDuration;
+    _isLooping = _audioService.isLooping;
   }
 
   @override
@@ -86,6 +98,7 @@ class _FloatingPlayerState extends State<FloatingPlayer>
     _animationController.dispose();
     _positionSubscription?.cancel();
     _durationSubscription?.cancel();
+    _loopSubscription?.cancel();
     super.dispose();
   }
 
@@ -205,6 +218,32 @@ class _FloatingPlayerState extends State<FloatingPlayer>
                       Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
+                          // 循环播放按钮
+                          GestureDetector(
+                            onTap: () {
+                              _audioService.setLooping(!_isLooping);
+                            },
+                            child: Container(
+                              width: 36,
+                              height: 36,
+                              decoration: BoxDecoration(
+                                color: _isLooping 
+                                    ? AppColors.accent.withOpacity(0.2)
+                                    : Colors.grey.withOpacity(0.1),
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(
+                                Icons.repeat,
+                                color: _isLooping 
+                                    ? AppColors.accent 
+                                    : AppColors.textHint,
+                                size: 18,
+                              ),
+                            ),
+                          ),
+
+                          const SizedBox(width: 8),
+
                           // 上一首
                           GestureDetector(
                             onTap: widget.onPrevious,

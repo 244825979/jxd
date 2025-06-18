@@ -21,6 +21,7 @@ class AudioService {
   Duration _totalDuration = Duration.zero;
   Timer? _timer;
   int? _timerDuration; // 定时关闭时间（秒）
+  bool _isLooping = true; // 是否循环播放
 
   // 状态流控制器
   final StreamController<PlayerState> _playerStateController = StreamController<PlayerState>.broadcast();
@@ -28,6 +29,7 @@ class AudioService {
   final StreamController<Duration> _durationController = StreamController<Duration>.broadcast();
   final StreamController<AudioItem?> _currentAudioController = StreamController<AudioItem?>.broadcast();
   final StreamController<int?> _timerController = StreamController<int?>.broadcast();
+  final StreamController<bool> _loopController = StreamController<bool>.broadcast();
 
   // 公开的流
   Stream<PlayerState> get playerStateStream => _playerStateController.stream;
@@ -35,6 +37,7 @@ class AudioService {
   Stream<Duration> get durationStream => _durationController.stream;
   Stream<AudioItem?> get currentAudioStream => _currentAudioController.stream;
   Stream<int?> get timerStream => _timerController.stream;
+  Stream<bool> get loopStream => _loopController.stream;
 
   // Getters
   PlayerState get playerState => _playerState;
@@ -42,6 +45,7 @@ class AudioService {
   Duration get currentPosition => _currentPosition;
   Duration get totalDuration => _totalDuration;
   int? get timerDuration => _timerDuration;
+  bool get isLooping => _isLooping;
 
   // 初始化
   Future<void> initialize() async {
@@ -77,10 +81,19 @@ class AudioService {
     });
 
     // 监听播放完成
-    _audioPlayer.onPlayerComplete.listen((_) {
-      _updatePlayerState(PlayerState.stopped);
-      _currentPosition = Duration.zero;
-      _positionController.add(_currentPosition);
+    _audioPlayer.onPlayerComplete.listen((_) async {
+      if (_isLooping && _currentAudio != null && _timerDuration == null) {
+        // 循环播放：重新开始播放
+        _currentPosition = Duration.zero;
+        _positionController.add(_currentPosition);
+        await _audioPlayer.seek(Duration.zero);
+        await _audioPlayer.resume();
+      } else {
+        // 不循环或有定时器：停止播放
+        _updatePlayerState(PlayerState.stopped);
+        _currentPosition = Duration.zero;
+        _positionController.add(_currentPosition);
+      }
     });
   }
 
@@ -172,6 +185,12 @@ class AudioService {
     _timerController.add(_timerDuration);
   }
 
+  // 设置循环播放
+  void setLooping(bool loop) {
+    _isLooping = loop;
+    _loopController.add(_isLooping);
+  }
+
   // 更新播放状态
   void _updatePlayerState(PlayerState state) {
     _playerState = state;
@@ -187,6 +206,7 @@ class AudioService {
     await _durationController.close();
     await _currentAudioController.close();
     await _timerController.close();
+    await _loopController.close();
   }
 
   // 格式化时间

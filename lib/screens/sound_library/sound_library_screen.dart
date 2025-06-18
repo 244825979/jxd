@@ -5,6 +5,7 @@ import '../../services/data_service.dart';
 import '../../services/player_service.dart';
 import '../../models/audio_item.dart';
 import '../../widgets/common/custom_card.dart';
+import 'publish_audio_screen.dart';
 
 class SoundLibraryScreen extends StatefulWidget {
   const SoundLibraryScreen({super.key});
@@ -79,133 +80,31 @@ class _SoundLibraryScreenState extends State<SoundLibraryScreen> {
     PlayerService().playTrack(track, playlist: [track]);
   }
 
-  // 显示上传对话框
+  // 跳转到发布音频页面
   void _showUploadDialog() {
-    final titleController = TextEditingController();
-    final descriptionController = TextEditingController();
-    
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: AppColors.cardBackground,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
-        title: const Text(
-          '发布我的音频',
-          style: TextStyle(
-            color: AppColors.textPrimary,
-            fontSize: 18,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: titleController,
-              style: const TextStyle(color: AppColors.textPrimary),
-              decoration: const InputDecoration(
-                labelText: '音频标题',
-                labelStyle: TextStyle(color: AppColors.textSecondary),
-                border: OutlineInputBorder(),
-                focusedBorder: OutlineInputBorder(
-                  borderSide: BorderSide(color: AppColors.accent),
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: descriptionController,
-              style: const TextStyle(color: AppColors.textPrimary),
-              maxLines: 3,
-              decoration: const InputDecoration(
-                labelText: '音频描述',
-                labelStyle: TextStyle(color: AppColors.textSecondary),
-                border: OutlineInputBorder(),
-                focusedBorder: OutlineInputBorder(
-                  borderSide: BorderSide(color: AppColors.accent),
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: AppColors.accent.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: AppColors.accent.withOpacity(0.3)),
-              ),
-              child: Column(
-                children: [
-                  Icon(
-                    Icons.cloud_upload_outlined,
-                    color: AppColors.accent,
-                    size: 40,
-                  ),
-                  const SizedBox(height: 8),
-                  const Text(
-                    '选择音频文件',
-                    style: TextStyle(
-                      color: AppColors.accent,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  const Text(
-                    '支持 MP3, WAV 格式',
-                    style: TextStyle(
-                      color: AppColors.textHint,
-                      fontSize: 12,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text(
-              '取消',
-              style: TextStyle(color: AppColors.textHint),
-            ),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              if (titleController.text.isNotEmpty && descriptionController.text.isNotEmpty) {
-                _addUserAudio(titleController.text, descriptionController.text);
-                Navigator.of(context).pop();
-              }
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.accent,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-            ),
-            child: const Text(
-              '发布',
-              style: TextStyle(color: Colors.white),
-            ),
-          ),
-        ],
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const PublishAudioScreen(),
       ),
-    );
+    ).then((audioData) {
+      if (audioData != null) {
+        _addUserAudio(audioData);
+      }
+    });
   }
 
   // 添加用户音频
-  void _addUserAudio(String title, String description) {
+  void _addUserAudio(Map<String, dynamic> audioData) {
     final newAudio = {
       'id': 'user_${DateTime.now().millisecondsSinceEpoch}',
-      'title': title,
-      'description': description,
+      'title': audioData['title'],
+      'description': audioData['content'],
       'duration': '3:30', // 模拟时长
-      'category': '原创音频',
-      'createdAt': DateTime.now(),
+      'category': audioData['type'],
+      'image': audioData['image'],
+      'audioFile': audioData['audioFile'],
+      'createdAt': audioData['createdAt'],
     };
     
     setState(() {
