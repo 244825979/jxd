@@ -20,7 +20,7 @@ class DataService {
       description: '通过专注呼吸，让心灵回到当下',
       coverImage: 'assets/images/meditation/breathing.jpg',
       audioPath: 'voice/meditation/mingxiang_1.mp3',
-      duration: 90, // 90秒
+      duration: 94, // 1分34秒 (实际播放时长)
       type: AudioType.meditation,
       category: '正念冥想',
     ),
@@ -30,7 +30,7 @@ class DataService {
       description: '睡前冥想，帮助您快速进入深度睡眠',
       coverImage: 'assets/images/meditation/sleep.jpg',
       audioPath: 'voice/meditation/mingxiang_2.mp3',
-      duration: 90, // 90秒
+      duration: 120, // 2分00秒 (实际播放时长)
       type: AudioType.meditation,
       category: '睡眠冥想',
     ),
@@ -40,7 +40,7 @@ class DataService {
       description: '快速放松身心的短时冥想',
       coverImage: 'assets/images/meditation/relaxation.jpg',
       audioPath: 'voice/meditation/mingxiang_3.mp3',
-      duration: 90, // 90秒
+      duration: 120, // 2分00秒 (实际播放时长)
       type: AudioType.meditation,
       category: '快速冥想',
     ),
@@ -50,7 +50,7 @@ class DataService {
       description: '通过身体扫描技术，释放身体各部位的紧张',
       coverImage: 'assets/images/meditation/body_scan.jpg',
       audioPath: 'voice/meditation/mingxiang_4.mp3',
-      duration: 90, // 90秒
+      duration: 118, // 1分58秒 (实际播放时长)
       type: AudioType.meditation,
       category: '身体觉知',
     ),
@@ -60,7 +60,7 @@ class DataService {
       description: '培养感恩之心，感受生活中的美好',
       coverImage: 'assets/images/meditation/gratitude.jpg',
       audioPath: 'voice/meditation/mingxiang_5.mp3',
-      duration: 90, // 90秒
+      duration: 118, // 1分58秒 (实际播放时长)
       type: AudioType.meditation,
       category: '情感疗愈',
     ),
