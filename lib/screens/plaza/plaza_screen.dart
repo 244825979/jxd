@@ -71,23 +71,11 @@ class _PlazaScreenState extends State<PlazaScreen> {
                   Wrap(
                     spacing: 8,
                     runSpacing: 8,
-                    children: _hotTopics.take(4).map((topic) => 
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: AppColors.primary,
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Text(
-                          '#$topic',
-                          style: const TextStyle(
-                            color: AppColors.accent,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ),
-                    ).toList(),
+                    children: _hotTopics.take(6).toList().asMap().entries.map((entry) {
+                      final index = entry.key;
+                      final topic = entry.value;
+                      return _buildTopicTag(topic, index);
+                    }).toList(),
                   ),
                   const SizedBox(height: 16),
                   
@@ -136,20 +124,37 @@ class _PlazaScreenState extends State<PlazaScreen> {
               Container(
                 width: 40,
                 height: 40,
-                decoration: BoxDecoration(
-                  color: AppColors.accent.withOpacity(0.2),
+                decoration: const BoxDecoration(
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.person, color: AppColors.accent),
+                child: ClipOval(
+                  child: Image.asset(
+                    post.authorAvatar,
+                    width: 40,
+                    height: 40,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) {
+                      return Container(
+                        width: 40,
+                        height: 40,
+                        decoration: BoxDecoration(
+                          color: AppColors.accent.withOpacity(0.2),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(Icons.person, color: AppColors.accent),
+                      );
+                    },
+                  ),
+                ),
               ),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      '匿名用户',
-                      style: TextStyle(
+                    Text(
+                      post.authorName,
+                      style: const TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
                         color: AppColors.textPrimary,
@@ -182,17 +187,28 @@ class _PlazaScreenState extends State<PlazaScreen> {
           // 图片（如果有）
           if (post.imageUrl != null) ...[
             const SizedBox(height: 12),
-            Container(
-              width: double.infinity,
-              height: 180,
-              decoration: BoxDecoration(
-                color: AppColors.primary,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: const Icon(
-                Icons.image,
-                size: 48,
-                color: AppColors.accent,
+            ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: Image.asset(
+                post.imageUrl!,
+                width: double.infinity,
+                height: 180,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) {
+                  return Container(
+                    width: double.infinity,
+                    height: 180,
+                    decoration: BoxDecoration(
+                      color: AppColors.primary,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(
+                      Icons.image_not_supported,
+                      size: 48,
+                      color: AppColors.accent,
+                    ),
+                  );
+                },
               ),
             ),
           ],
@@ -274,6 +290,54 @@ class _PlazaScreenState extends State<PlazaScreen> {
             ),
           ],
         ],
+      ),
+    );
+  }
+
+  // 构建话题标签，为每个话题设置不同的暖色系颜色
+  Widget _buildTopicTag(String topic, int index) {
+    // 定义6种淡暖色系颜色
+    final List<Color> warmColors = [
+      const Color(0xFFFFCDD2), // 淡粉色
+      const Color(0xFFFFE0B2), // 淡橙色
+      const Color(0xFFFFF9C4), // 淡黄色
+      const Color(0xFFC8E6C9), // 淡绿色
+      const Color(0xFFDCEDC8), // 浅淡绿色
+      const Color(0xFFFFE0B2), // 淡橙色2
+    ];
+    
+    final List<Color> textColors = [
+      const Color(0xFFD32F2F), // 深粉红
+      const Color(0xFFE65100), // 深橙色
+      const Color(0xFFF57C00), // 深黄色
+      const Color(0xFF388E3C), // 深绿色
+      const Color(0xFF2E7D32), // 深绿色2
+      const Color(0xFFEF6C00), // 深橙色2
+    ];
+    
+    final bgColor = warmColors[index % warmColors.length];
+    final textColor = textColors[index % textColors.length];
+    
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: bgColor.withOpacity(0.3),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Text(
+        '#$topic',
+        style: TextStyle(
+          color: textColor,
+          fontSize: 12,
+          fontWeight: FontWeight.w600,
+        ),
       ),
     );
   }

@@ -40,7 +40,7 @@ class AppStrings {
   // 广场
   static const String plazaTitle = '情感广场';
   static const String hotTopics = '热门话题';
-  static const String anonymousPost = '匿名发布';
+  static const String anonymousPost = '发布';
   static const String writePost = '写下你的心情...';
   
   // 消息

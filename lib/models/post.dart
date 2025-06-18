@@ -5,6 +5,7 @@ class Post {
   final List<String> tags;
   final DateTime createdAt;
   final String authorAvatar;
+  final String authorName;
   final int likeCount;
   final int commentCount;
   final bool isLiked;
@@ -17,6 +18,7 @@ class Post {
     required this.tags,
     required this.createdAt,
     required this.authorAvatar,
+    required this.authorName,
     this.likeCount = 0,
     this.commentCount = 0,
     this.isLiked = false,
@@ -31,6 +33,7 @@ class Post {
       'tags': tags,
       'createdAt': createdAt.toIso8601String(),
       'authorAvatar': authorAvatar,
+      'authorName': authorName,
       'likeCount': likeCount,
       'commentCount': commentCount,
       'isLiked': isLiked,
@@ -46,6 +49,7 @@ class Post {
       tags: List<String>.from(json['tags']),
       createdAt: DateTime.parse(json['createdAt']),
       authorAvatar: json['authorAvatar'],
+      authorName: json['authorName'],
       likeCount: json['likeCount'] ?? 0,
       commentCount: json['commentCount'] ?? 0,
       isLiked: json['isLiked'] ?? false,
@@ -60,6 +64,7 @@ class Post {
     List<String>? tags,
     DateTime? createdAt,
     String? authorAvatar,
+    String? authorName,
     int? likeCount,
     int? commentCount,
     bool? isLiked,
@@ -72,6 +77,7 @@ class Post {
       tags: tags ?? this.tags,
       createdAt: createdAt ?? this.createdAt,
       authorAvatar: authorAvatar ?? this.authorAvatar,
+      authorName: authorName ?? this.authorName,
       likeCount: likeCount ?? this.likeCount,
       commentCount: commentCount ?? this.commentCount,
       isLiked: isLiked ?? this.isLiked,
