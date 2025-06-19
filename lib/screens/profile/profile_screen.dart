@@ -13,6 +13,7 @@ import 'my_bookmarked_posts_screen.dart';
 import 'my_reports_screen.dart';
 import 'my_blocked_posts_screen.dart';
 import 'my_posts_screen.dart';
+import 'my_feedbacks_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -334,12 +335,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     const SizedBox(width: 12),
                     Expanded(
                       child: _buildFunctionCard(
-                        '意见反馈',
-                        '帮助我们改进',
+                        '我的反馈',
+                        '查看反馈历史',
                         Icons.feedback_outlined,
                         const Color(0xFF27AE60),
                         () {
-                          // TODO: 跳转到反馈页面
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const MyFeedbacksScreen(),
+                            ),
+                          );
                         },
                       ),
                     ),

@@ -5,6 +5,7 @@ import '../../services/data_service.dart';
 import '../../models/notification.dart';
 import '../../widgets/common/custom_card.dart';
 import '../home/ai_chat_screen.dart';
+import 'feedback_screen.dart';
 
 class MessagesScreen extends StatefulWidget {
   const MessagesScreen({super.key});
@@ -38,6 +39,14 @@ class _MessagesScreenState extends State<MessagesScreen> {
     );
   }
 
+  void _navigateToFeedback() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => const FeedbackScreen(),
+      ),
+    );
+  }
+
   IconData _getNotificationIcon(NotificationType type) {
     switch (type) {
       case NotificationType.aiReminder:
@@ -55,23 +64,34 @@ class _MessagesScreenState extends State<MessagesScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.primary,
+      appBar: AppBar(
+        backgroundColor: AppColors.primary,
+        elevation: 0,
+        title: const Text(
+          AppStrings.messagesTitle,
+          style: TextStyle(
+            color: AppColors.textPrimary,
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        centerTitle: false,
+        actions: [
+          IconButton(
+            icon: const Icon(
+              Icons.feedback_outlined,
+              color: AppColors.textPrimary,
+            ),
+            onPressed: _navigateToFeedback,
+            tooltip: '意见反馈',
+          ),
+        ],
+      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // 标题
-            const Text(
-              AppStrings.messagesTitle,
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: AppColors.textPrimary,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 24),
-
             // AI 心伴私密对话入口
             CustomCard(
               onTap: _navigateToAIChat,

@@ -6,6 +6,7 @@ import '../models/user.dart';
 import '../models/user_data.dart';
 import '../models/report.dart';
 import '../constants/app_images.dart';
+import '../models/feedback.dart' as feedback_model;
 
 class DataService {
   static DataService? _instance;
@@ -599,6 +600,117 @@ class DataService {
       'timestamp': DateTime.now().subtract(const Duration(minutes: 3)),
     },
   ];
+
+  // ============ 反馈相关数据 ============
+  
+  final List<feedback_model.Feedback> _feedbacks = [];
+
+  // ============ 反馈相关方法 ============
+
+  // 提交反馈
+  String submitFeedback({
+    required String type,
+    required String content,
+    String? contact,
+  }) {
+    // 生成反馈ID
+    final feedbackId = 'feedback_${DateTime.now().millisecondsSinceEpoch}';
+    
+    // 创建反馈记录
+    final feedback = feedback_model.Feedback(
+      id: feedbackId,
+      type: type,
+      content: content,
+      contact: contact,
+      createdAt: DateTime.now(),
+      status: feedback_model.FeedbackStatus.pending,
+    );
+
+    // 添加到反馈列表
+    _feedbacks.add(feedback);
+
+    // 模拟后台处理
+    _simulateFeedbackProcessing(feedbackId);
+
+    return feedbackId;
+  }
+
+  // 获取用户反馈列表
+  List<feedback_model.Feedback> getUserFeedbacks() {
+    // 按创建时间排序（最新的在前）
+    final sortedFeedbacks = List<feedback_model.Feedback>.from(_feedbacks);
+    sortedFeedbacks.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    return sortedFeedbacks;
+  }
+
+  // 根据ID获取反馈详情
+  feedback_model.Feedback? getFeedbackById(String feedbackId) {
+    try {
+      return _feedbacks.firstWhere((feedback) => feedback.id == feedbackId);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  // 模拟反馈处理过程
+  void _simulateFeedbackProcessing(String feedbackId) {
+    // 模拟1-3天后收到回复
+    final processingTime = Duration(
+      hours: 24 + (DateTime.now().millisecond % 48), // 1-3天
+    );
+
+    Future.delayed(processingTime, () {
+      final feedbackIndex = _feedbacks.indexWhere((f) => f.id == feedbackId);
+      if (feedbackIndex != -1) {
+        final feedback = _feedbacks[feedbackIndex];
+        
+        // 生成模拟回复
+        final responses = [
+          '感谢您的反馈！我们已经收到您的建议，开发团队正在评估可行性。',
+          '您提到的问题我们已经记录，会在下个版本中优化。',
+          '非常感谢您的宝贵意见，这对我们改进产品很有帮助！',
+          '您的建议很有价值，我们会认真考虑并纳入产品规划。',
+          '感谢反馈！相关问题已转交给技术团队处理。',
+        ];
+        
+        final randomResponse = responses[
+          DateTime.now().millisecond % responses.length
+        ];
+
+        _feedbacks[feedbackIndex] = feedback.copyWith(
+          status: feedback_model.FeedbackStatus.replied,
+          response: randomResponse,
+          responseAt: DateTime.now(),
+        );
+      }
+    });
+  }
+
+  // 获取反馈统计信息
+  Map<String, int> getFeedbackStats() {
+    final stats = <String, int>{
+      'total': _feedbacks.length,
+      'pending': 0,
+      'replied': 0,
+      'resolved': 0,
+    };
+
+    for (final feedback in _feedbacks) {
+      switch (feedback.status) {
+        case feedback_model.FeedbackStatus.pending:
+          stats['pending'] = stats['pending']! + 1;
+          break;
+        case feedback_model.FeedbackStatus.replied:
+          stats['replied'] = stats['replied']! + 1;
+          break;
+        case feedback_model.FeedbackStatus.resolved:
+          stats['resolved'] = stats['resolved']! + 1;
+          break;
+      }
+    }
+
+    return stats;
+  }
 
   // 获取音频列表
   List<AudioItem> getAudioItems({AudioType? type, String? category}) {
