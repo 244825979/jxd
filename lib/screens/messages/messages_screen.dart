@@ -6,7 +6,11 @@ import '../../models/notification.dart';
 import '../../widgets/common/custom_card.dart';
 import '../../widgets/common/ai_avatar.dart';
 import '../home/ai_chat_screen.dart';
+import '../profile/my_posts_screen.dart';
 import 'feedback_screen.dart';
+import 'wellness_tips_screen.dart';
+import 'achievements_screen.dart';
+import 'feature_intro_screen.dart';
 
 class MessagesScreen extends StatefulWidget {
   const MessagesScreen({super.key});
@@ -48,6 +52,54 @@ class _MessagesScreenState extends State<MessagesScreen> {
     );
   }
 
+  void _navigateToWellnessTips() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => const WellnessTipsScreen(),
+      ),
+    );
+  }
+
+  void _navigateToAchievements() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => const AchievementsScreen(),
+      ),
+    );
+  }
+
+  void _navigateToFeatureIntro(Map<String, dynamic>? params) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => FeatureIntroScreen(feature: params?['feature']),
+      ),
+    );
+  }
+
+  void _navigateToMyPosts() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => const MyPostsScreen(),
+      ),
+    );
+  }
+
+  void _showNotificationDetail(NotificationItem notification) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(notification.title),
+        content: Text(notification.content),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('确定'),
+          ),
+        ],
+      ),
+    );
+  }
+
   IconData _getNotificationIcon(NotificationType type) {
     switch (type) {
       case NotificationType.aiReminder:
@@ -58,6 +110,57 @@ class _MessagesScreenState extends State<MessagesScreen> {
         return Icons.favorite;
       case NotificationType.system:
         return Icons.info;
+      case NotificationType.wellness:
+        return Icons.health_and_safety;
+      case NotificationType.achievement:
+        return Icons.emoji_events;
+    }
+  }
+
+  Color _getNotificationIconColor(NotificationType type) {
+    switch (type) {
+      case NotificationType.aiReminder:
+        return Colors.blue.shade400;
+      case NotificationType.comment:
+        return Colors.green.shade400;
+      case NotificationType.like:
+        return Colors.red.shade400;
+      case NotificationType.system:
+        return Colors.purple.shade400;
+      case NotificationType.wellness:
+        return Colors.teal.shade400;
+      case NotificationType.achievement:
+        return Colors.amber.shade400;
+    }
+  }
+
+  void _handleNotificationTap(NotificationItem notification) {
+    // 标记为已读
+    notification = notification.copyWith(isRead: true);
+    
+    // 根据routeName导航到对应页面
+    if (notification.routeName != null) {
+      switch (notification.routeName) {
+        case '/wellness_tips':
+          _navigateToWellnessTips();
+          break;
+        case '/achievements':
+          _navigateToAchievements();
+          break;
+        case '/feature_intro':
+          _navigateToFeatureIntro(notification.routeParams);
+          break;
+        case '/ai_chat':
+          _navigateToAIChat();
+          break;
+        case '/my_posts':
+          _navigateToMyPosts();
+          break;
+        default:
+          _showNotificationDetail(notification);
+      }
+    } else {
+      _showNotificationDetail(notification);
     }
   }
 
@@ -186,87 +289,92 @@ class _MessagesScreenState extends State<MessagesScreen> {
   }
 
   Widget _buildNotificationItem(NotificationItem notification) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: notification.isRead 
-            ? Colors.transparent 
-            : AppColors.accent.withOpacity(0.05),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(
+    final iconColor = _getNotificationIconColor(notification.type);
+    
+    return GestureDetector(
+      onTap: () => _handleNotificationTap(notification),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
           color: notification.isRead 
               ? Colors.transparent 
-              : AppColors.accent.withOpacity(0.1),
-        ),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 32,
-            height: 32,
-            decoration: BoxDecoration(
-              color: AppColors.accent.withOpacity(0.1),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(
-              _getNotificationIcon(notification.type),
-              size: 16,
-              color: AppColors.accent,
-            ),
+              : iconColor.withOpacity(0.05),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: notification.isRead 
+                ? Colors.transparent 
+                : iconColor.withOpacity(0.1),
           ),
-          const SizedBox(width: 12),
-          
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        notification.title,
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: notification.isRead 
-                              ? FontWeight.w500 
-                              : FontWeight.w600,
-                          color: AppColors.textPrimary,
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: 32,
+              height: 32,
+              decoration: BoxDecoration(
+                color: iconColor.withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                _getNotificationIcon(notification.type),
+                size: 16,
+                color: iconColor,
+              ),
+            ),
+            const SizedBox(width: 12),
+            
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          notification.title,
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: notification.isRead 
+                                ? FontWeight.w500 
+                                : FontWeight.w600,
+                            color: AppColors.textPrimary,
+                          ),
                         ),
                       ),
-                    ),
+                      Text(
+                        notification.timeAgo,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: AppColors.textHint,
+                        ),
+                      ),
+                    ],
+                  ),
+                  if (notification.content.isNotEmpty) ...[
+                    const SizedBox(height: 4),
                     Text(
-                      notification.timeAgo,
+                      notification.content,
                       style: const TextStyle(
                         fontSize: 12,
-                        color: AppColors.textHint,
+                        color: AppColors.textSecondary,
+                        height: 1.3,
                       ),
                     ),
                   ],
-                ),
-                if (notification.content.isNotEmpty) ...[
-                  const SizedBox(height: 4),
-                  Text(
-                    notification.content,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: AppColors.textSecondary,
-                      height: 1.3,
-                    ),
-                  ),
                 ],
-              ],
+              ),
             ),
-          ),
-          
-          const SizedBox(width: 8),
-          const Icon(
-            Icons.chevron_right,
-            size: 16,
-            color: AppColors.textHint,
-          ),
-        ],
+            
+            const SizedBox(width: 8),
+            const Icon(
+              Icons.chevron_right,
+              size: 16,
+              color: AppColors.textHint,
+            ),
+          ],
+        ),
       ),
     );
   }

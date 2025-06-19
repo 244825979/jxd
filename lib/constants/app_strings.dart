@@ -25,8 +25,8 @@ class AppStrings {
   // 心情选择器
   static const String moodSelectorHint = '滑动选择你的心情';
   
-  // AI 聊天
-  static const String aiChatTitle = 'AI 陪伴聊天';
+  // 情感助手
+  static const String aiChatTitle = '情感助手';
   static const String chatInputHint = '分享你的心情...';
   static const String aiWelcome = '你好！我是你的情绪陪伴助手，有什么想聊的吗？';
   
@@ -45,7 +45,7 @@ class AppStrings {
   
   // 消息
   static const String messagesTitle = '消息中心';
-  static const String aiChat = 'AI 聊天';
+  static const String aiChat = '情感助手';
   static const String notifications = '通知消息';
   
   // 我的

@@ -1,4 +1,11 @@
-enum NotificationType { aiReminder, comment, like, system }
+enum NotificationType { 
+  aiReminder,       // AI智能提醒
+  comment,          // 评论通知
+  like,             // 点赞通知
+  system,           // 系统公告
+  wellness,         // 健康贴士
+  achievement       // 成就徽章
+}
 
 class NotificationItem {
   final String id;
@@ -7,6 +14,8 @@ class NotificationItem {
   final NotificationType type;
   final DateTime createdAt;
   final bool isRead;
+  final String? routeName;       // 目标页面路由
+  final Map<String, dynamic>? routeParams; // 路由参数
 
   NotificationItem({
     required this.id,
@@ -15,6 +24,8 @@ class NotificationItem {
     required this.type,
     required this.createdAt,
     this.isRead = false,
+    this.routeName,
+    this.routeParams,
   });
 
   Map<String, dynamic> toJson() {
@@ -25,6 +36,8 @@ class NotificationItem {
       'type': type.name,
       'createdAt': createdAt.toIso8601String(),
       'isRead': isRead,
+      'routeName': routeName,
+      'routeParams': routeParams,
     };
   }
 
@@ -36,6 +49,10 @@ class NotificationItem {
       type: NotificationType.values.firstWhere((e) => e.name == json['type']),
       createdAt: DateTime.parse(json['createdAt']),
       isRead: json['isRead'] ?? false,
+      routeName: json['routeName'],
+      routeParams: json['routeParams'] != null 
+          ? Map<String, dynamic>.from(json['routeParams']) 
+          : null,
     );
   }
 
@@ -46,6 +63,8 @@ class NotificationItem {
     NotificationType? type,
     DateTime? createdAt,
     bool? isRead,
+    String? routeName,
+    Map<String, dynamic>? routeParams,
   }) {
     return NotificationItem(
       id: id ?? this.id,
@@ -54,6 +73,8 @@ class NotificationItem {
       type: type ?? this.type,
       createdAt: createdAt ?? this.createdAt,
       isRead: isRead ?? this.isRead,
+      routeName: routeName ?? this.routeName,
+      routeParams: routeParams ?? this.routeParams,
     );
   }
 

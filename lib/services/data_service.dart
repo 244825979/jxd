@@ -5,8 +5,10 @@ import '../models/notification.dart';
 import '../models/user.dart';
 import '../models/user_data.dart';
 import '../models/report.dart';
+import '../models/achievement.dart';
 import '../constants/app_images.dart';
 import '../models/feedback.dart' as feedback_model;
+import 'ai_service.dart';
 
 class DataService {
   static DataService? _instance;
@@ -147,6 +149,140 @@ class DataService {
 
   // 被屏蔽动态ID列表
   final Set<String> _blockedPostIds = {};
+
+  // 成就数据
+  List<Achievement> _achievements = [
+    Achievement(
+      id: 'welcome',
+      type: AchievementType.welcome,
+      title: '🌟 欢迎来到静心岛',
+      subtitle: '首次使用静心岛',
+      description: '欢迎来到静心岛！开始您的心灵疗愈之旅吧！',
+      icon: '🌟',
+      colorHex: '#4CAF50', // green.shade500
+      requiredValue: 1,
+      unit: '次',
+      currentValue: 1, // 默认完成
+      isUnlocked: true, // 默认解锁
+      unlockedAt: DateTime.now(),
+    ),
+    Achievement(
+      id: 'listener',
+      type: AchievementType.listener,
+      title: '🎯 倾听者',
+      subtitle: '连续7天使用情感助手',
+      description: '坚持与AI助手交流7天，展现对内心成长的坚持！',
+      icon: '🎯',
+      colorHex: '#FFA726', // amber.shade400
+      requiredValue: 7,
+      unit: '天',
+      currentValue: 0, // 从零开始
+      isUnlocked: false,
+    ),
+    Achievement(
+      id: 'expresser',
+      type: AchievementType.expresser,
+      title: '📝 表达者',
+      subtitle: '发布10条心情动态',
+      description: '勇敢表达自己的想法和感受',
+      icon: '📝',
+      colorHex: '#42A5F5', // blue.shade400
+      requiredValue: 10,
+      unit: '条',
+      currentValue: 0, // 从零开始
+      isUnlocked: false,
+    ),
+    Achievement(
+      id: 'meditator',
+      type: AchievementType.meditator,
+      title: '🧘‍♀️ 冥想初学者',
+      subtitle: '完成30分钟冥想',
+      description: '开始冥想练习的第一步',
+      icon: '🧘‍♀️',
+      colorHex: '#66BB6A', // green.shade400
+      requiredValue: 30,
+      unit: '分钟',
+      currentValue: 0, // 从零开始
+      isUnlocked: false,
+    ),
+    Achievement(
+      id: 'supporter',
+      type: AchievementType.supporter,
+      title: '❤️ 温暖使者',
+      subtitle: '获得50个点赞',
+      description: '您的分享温暖了许多人的心',
+      icon: '❤️',
+      colorHex: '#EF5350', // red.shade400
+      requiredValue: 50,
+      unit: '个',
+      currentValue: 0, // 当前用户获得的总点赞数
+      isUnlocked: false,
+    ),
+    Achievement(
+      id: 'tracker',
+      type: AchievementType.tracker,
+      title: '🌱 成长见证者',
+      subtitle: '连续21天记录心情',
+      description: '坚持记录，见证自己的情感成长',
+      icon: '🌱',
+      colorHex: '#AB47BC', // purple.shade400
+      requiredValue: 21,
+      unit: '天',
+      currentValue: 0, // 连续记录天数
+      isUnlocked: false,
+    ),
+    Achievement(
+      id: 'challenger',
+      type: AchievementType.challenger,
+      title: '🏃‍♂️ 挑战者',
+      subtitle: '参与5个社区挑战',
+      description: '积极参与社区活动，挑战自我',
+      icon: '🏃‍♂️',
+      colorHex: '#FF7043', // deepOrange.shade400
+      requiredValue: 5,
+      unit: '个',
+      currentValue: 1, // 已参与的挑战数
+      isUnlocked: false,
+    ),
+    Achievement(
+      id: 'helper',
+      type: AchievementType.helper,
+      title: '🤝 互助者',
+      subtitle: '帮助他人20次',
+      description: '通过评论和互动，帮助他人走出困境',
+      icon: '🤝',
+      colorHex: '#26C6DA', // cyan.shade400
+      requiredValue: 20,
+      unit: '次',
+      currentValue: 0, // 帮助他人的次数
+      isUnlocked: false,
+    ),
+    Achievement(
+      id: 'consistent',
+      type: AchievementType.consistent,
+      title: '⭐ 坚持者',
+      subtitle: '连续30天使用应用',
+      description: '持续的自我关怀，是最好的成长方式',
+      icon: '⭐',
+      colorHex: '#FFCA28', // amber.shade600
+      requiredValue: 30,
+      unit: '天',
+      currentValue: 7, // 连续使用天数
+      isUnlocked: false,
+    ),
+  ];
+
+  // 用户行为统计数据
+  Map<String, int> _userStats = {
+    'aiChatDays': 0,           // AI聊天天数
+    'meditationMinutes': 0,    // 冥想总分钟数
+    'postsPublished': 0,       // 发布动态数
+    'likesReceived': 0,        // 获得点赞数
+    'moodRecordDays': 0,       // 心情记录天数
+    'challengesJoined': 0,     // 参与挑战数
+    'helpActions': 0,          // 帮助他人次数
+    'consecutiveDays': 0,      // 连续使用天数
+  };
 
   // 静态帖子数据 - 图片和纯文字动态交错排列
   List<Post> _posts = [
@@ -504,26 +640,61 @@ class DataService {
 
   // 静态通知数据
   final List<NotificationItem> _notifications = [
+    // 1. 健康贴士通知
     NotificationItem(
-      id: 'notif_1',
+      id: 'notif_wellness_1',
+      title: '💡 每日健康贴士',
+      content: '研究表明，每天10分钟的冥想可以显著减少焦虑。今天你冥想了吗？',
+      type: NotificationType.wellness,
+      createdAt: DateTime.now().subtract(const Duration(minutes: 30)),
+      routeName: '/wellness_tips',
+    ),
+    
+    // 2. 成就徽章通知 - 最新
+    NotificationItem(
+      id: 'notif_achievement_2',
+      title: '🎖️ 获得新徽章：「情感导师」',
+      content: '恭喜！您已在社区发布了5条正能量内容，获得「情感导师」徽章！',
+      type: NotificationType.achievement,
+      createdAt: DateTime.now().subtract(const Duration(minutes: 15)),
+      routeName: '/achievements',
+    ),
+    
+    // 3. 系统公告通知
+    NotificationItem(
+      id: 'notif_system_1',
+      title: '📢 静心岛新功能上线',
+      content: '全新「情绪日记」功能已上线！支持语音记录，AI智能分析，让心情记录更简单。',
+      type: NotificationType.system,
+      createdAt: DateTime.now().subtract(const Duration(hours: 8)),
+      routeName: '/feature_intro',
+      routeParams: {'feature': 'mood_diary'},
+    ),
+    
+    // 原有通知
+    NotificationItem(
+      id: 'notif_ai_1',
       title: 'AI 每日提醒：是时候放松一下了',
       content: '您已经工作很久了，要不要来一段冥想放松一下？',
       type: NotificationType.aiReminder,
-      createdAt: DateTime.now().subtract(const Duration(minutes: 30)),
+      createdAt: DateTime.now().subtract(const Duration(hours: 12)),
+      routeName: '/ai_chat',
     ),
     NotificationItem(
-      id: 'notif_2',
-      title: '匿名用户评论了您的动态',
+      id: 'notif_comment_1',
+      title: '有用户评论了您的动态',
       content: '\"感同身受，有时候我们都需要这样的时刻。\"',
       type: NotificationType.comment,
-      createdAt: DateTime.now().subtract(const Duration(hours: 2)),
+      createdAt: DateTime.now().subtract(const Duration(days: 1)),
+      routeName: '/my_posts',
     ),
     NotificationItem(
-      id: 'notif_3',
-      title: '匿名用户点赞了您的动态',
+      id: 'notif_like_1',
+      title: '有用户点赞了您的动态',
       content: '您的分享让其他人感到共鸣',
       type: NotificationType.like,
-      createdAt: DateTime.now().subtract(const Duration(hours: 5)),
+      createdAt: DateTime.now().subtract(const Duration(days: 2)),
+      routeName: '/my_posts',
     ),
   ];
 
@@ -957,7 +1128,7 @@ class DataService {
     ];
   }
 
-  // 获取AI聊天消息
+  // 获取情感助手消息
   List<Map<String, dynamic>> getAIMessages() {
     return List<Map<String, dynamic>>.from(_aiMessages);
   }
@@ -1205,24 +1376,34 @@ class DataService {
     ];
   }
 
-  // 模拟AI回复
+  // AI回复（使用DeepSeek API）
   Future<String> getAIResponse(String userMessage) async {
-    // 模拟网络延迟
-    await Future.delayed(const Duration(seconds: 1));
-    
-    // 简单的关键词匹配回复
+    try {
+      // 调用DeepSeek API获取回复
+      return await AIService.getChatResponse(userMessage);
+    } catch (e) {
+      print('AI回复失败: $e');
+      // 如果API调用失败，返回备用回复
+      return _getFallbackResponse(userMessage);
+    }
+  }
+
+  // 备用回复方法
+  String _getFallbackResponse(String userMessage) {
     final message = userMessage.toLowerCase();
     
     if (message.contains('焦虑') || message.contains('紧张')) {
-      return '我理解你的焦虑。试试深呼吸：吸气4秒，屏息4秒，呼气4秒。重复几次会有帮助的。';
+      return '我理解你的焦虑感受。试试深呼吸练习：吸气4秒，屏息4秒，呼气4秒。这个简单的技巧能帮助你平静下来。';
     } else if (message.contains('失眠') || message.contains('睡不着')) {
-      return '失眠确实困扰。建议你试试睡前冥想，我们有专门的睡眠引导音频。另外，睡前一小时尽量远离电子设备。';
+      return '失眠确实很困扰人。建议你试试我们的睡前冥想音频，创造一个安静舒适的睡眠环境，睡前一小时避免使用电子设备。';
     } else if (message.contains('压力')) {
-      return '工作压力是现代人的常见问题。记住，你已经很努力了。要不要听听放松的冥想音频？';
+      return '感受到压力是很正常的。记住，你已经很努力了。适当的休息和放松同样重要，要不要试试我们的放松音频？';
     } else if (message.contains('开心') || message.contains('高兴')) {
-      return '很高兴听到你心情不错！保持这种积极的状态，你可以分享一下是什么让你这么开心吗？';
+      return '很高兴听到你心情不错！分享快乐会让快乐加倍，能告诉我是什么让你这么开心吗？';
+    } else if (message.contains('孤独') || message.contains('寂寞')) {
+      return '感到孤独时记住，你并不孤单。我在这里陪伴你，社区里也有很多朋友愿意倾听和支持你。';
     } else {
-      return '谢谢你的分享。我会一直在这里陪伴你。如果有什么困扰，随时可以告诉我。';
+      return '感谢你与我分享你的想法。每一份真诚的表达都值得被听见和理解。我会一直在这里陪伴你。';
     }
   }
 
@@ -1523,4 +1704,104 @@ class DataService {
     
     return true;
   }
+
+  // ============ 成就相关方法 ============
+
+  // 获取所有成就列表
+  List<Achievement> getAchievements() {
+    _updateAchievementProgress();
+    return List<Achievement>.from(_achievements);
+  }
+
+  // 获取已解锁的成就
+  List<Achievement> getUnlockedAchievements() {
+    _updateAchievementProgress();
+    return _achievements.where((achievement) => achievement.isUnlocked).toList();
+  }
+
+  // 获取成就统计
+  Map<String, int> getAchievementStats() {
+    _updateAchievementProgress();
+    return {
+      'total': _achievements.length,
+      'unlocked': _achievements.where((a) => a.isUnlocked).length,
+      'nearComplete': _achievements.where((a) => a.isNearComplete).length,
+    };
+  }
+
+  // 根据ID获取成就
+  Achievement? getAchievementById(String id) {
+    try {
+      return _achievements.firstWhere((achievement) => achievement.id == id);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  // 更新成就进度
+  void _updateAchievementProgress() {
+    for (int i = 0; i < _achievements.length; i++) {
+      final achievement = _achievements[i];
+      int currentValue = 0;
+
+      // 根据成就类型计算当前进度
+      switch (achievement.type) {
+        case AchievementType.welcome:
+          currentValue = 1; // 欢迎成就默认完成
+          break;
+        case AchievementType.listener:
+          currentValue = _userStats['aiChatDays'] ?? 0;
+          break;
+        case AchievementType.expresser:
+          currentValue = _userStats['postsPublished'] ?? 0;
+          break;
+        case AchievementType.meditator:
+          currentValue = _userStats['meditationMinutes'] ?? 0;
+          break;
+        case AchievementType.supporter:
+          currentValue = _userStats['likesReceived'] ?? 0;
+          break;
+        case AchievementType.tracker:
+          currentValue = _userStats['moodRecordDays'] ?? 0;
+          break;
+        case AchievementType.challenger:
+          currentValue = _userStats['challengesJoined'] ?? 0;
+          break;
+        case AchievementType.helper:
+          currentValue = _userStats['helpActions'] ?? 0;
+          break;
+        case AchievementType.consistent:
+          currentValue = _userStats['consecutiveDays'] ?? 0;
+          break;
+      }
+
+      // 检查是否应该解锁成就
+      bool shouldUnlock = currentValue >= achievement.requiredValue && !achievement.isUnlocked;
+
+      _achievements[i] = achievement.copyWith(
+        currentValue: currentValue,
+        isUnlocked: shouldUnlock || achievement.isUnlocked,
+        unlockedAt: shouldUnlock ? DateTime.now() : achievement.unlockedAt,
+      );
+    }
+  }
+
+  // 更新用户行为统计
+  void updateUserStats(String key, int value) {
+    _userStats[key] = value;
+    _updateAchievementProgress();
+  }
+
+  // 增加用户行为统计
+  void incrementUserStats(String key, {int increment = 1}) {
+    _userStats[key] = (_userStats[key] ?? 0) + increment;
+    _updateAchievementProgress();
+  }
+
+  // 获取用户统计数据
+  Map<String, int> getUserStats() {
+    return Map<String, int>.from(_userStats);
+  }
+
+
 } 
