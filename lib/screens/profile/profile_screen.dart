@@ -11,6 +11,8 @@ import 'days_detail_screen.dart';
 import 'my_liked_posts_screen.dart';
 import 'my_bookmarked_posts_screen.dart';
 import 'my_reports_screen.dart';
+import 'my_blocked_posts_screen.dart';
+import 'my_posts_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -220,11 +222,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         color: AppColors.textSecondary.withOpacity(0.2),
                       ),
                       Expanded(
-                        child: _buildStatItem(
-                          '发布',
-                          _currentUser.postCount.toString(),
-                          Icons.article,
-                          const Color(0xFF27AE60),
+                        child: GestureDetector(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const MyPostsScreen(),
+                              ),
+                            ).then((_) {
+                              // 从我的发布页面返回时刷新用户数据
+                              setState(() {
+                                _currentUser = _dataService.getCurrentUser();
+                              });
+                            });
+                          },
+                          child: _buildStatItem(
+                            '发布',
+                            _currentUser.postCount.toString(),
+                            Icons.article,
+                            const Color(0xFF27AE60),
+                          ),
                         ),
                       ),
                       Container(
@@ -305,7 +322,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         Icons.block_outlined,
                         const Color(0xFF95A5A6),
                         () {
-                          // TODO: 跳转到屏蔽管理页面
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const MyBlockedPostsScreen(),
+                            ),
+                          );
                         },
                       ),
                     ),

@@ -83,6 +83,11 @@ class UserData {
     return copyWith(myPostIds: newPosts);
   }
 
+  UserData removeMyPost(String postId) {
+    final newPosts = myPostIds.where((id) => id != postId).toList();
+    return copyWith(myPostIds: newPosts);
+  }
+
   UserData addLikedPost(String postId) {
     final newLikedPosts = [...likedPosts];
     if (!newLikedPosts.contains(postId)) {

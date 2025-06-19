@@ -91,10 +91,18 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
         ),
         centerTitle: true,
         actions: [
-          IconButton(
-            icon: const Icon(Icons.more_horiz, color: AppColors.textPrimary),
-            onPressed: _showMoreOptions,
-          ),
+          // 如果是自己发布的动态，显示删除按钮
+          if (_dataService.isMyPost(widget.post.id))
+            IconButton(
+              icon: const Icon(Icons.delete_outline, color: AppColors.textPrimary),
+              onPressed: _showDeleteConfirmDialog,
+            )
+          // 如果不是自己发布的动态，显示更多选项
+          else
+            IconButton(
+              icon: const Icon(Icons.more_horiz, color: AppColors.textPrimary),
+              onPressed: _showMoreOptions,
+            ),
         ],
       ),
       body: Column(
@@ -736,6 +744,27 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
     );
   }
 
+  // 屏蔽当前动态
+  void _blockPost() {
+    // 屏蔽动态
+    _dataService.blockPost(widget.post.id);
+    
+    // 显示成功提示
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('已屏蔽该内容'),
+        backgroundColor: AppColors.accent,
+        duration: Duration(milliseconds: 1000),
+      ),
+    );
+    
+    // 延迟一点时间后返回到详情页的上一页，并传递刷新标识
+    Future.delayed(const Duration(milliseconds: 300), () {
+      // 返回到上一级页面，并传递需要刷新的标识
+      Navigator.of(context).pop(true);
+    });
+  }
+
   // 显示更多选项
   void _showMoreOptions() {
     showModalBottomSheet(
@@ -772,8 +801,9 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                   ),
                 );
               }),
-              _buildOptionItem(Icons.block, '屏蔽用户', () {
+              _buildOptionItem(Icons.block, '屏蔽内容', () {
                 Navigator.pop(context);
+                _blockPost();
               }),
               const SizedBox(height: 20),
             ],
@@ -803,5 +833,92 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
         ),
       ),
     );
+  }
+
+  // 显示删除确认对话框
+  void _showDeleteConfirmDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text(
+            '删除动态',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+              color: AppColors.textPrimary,
+            ),
+          ),
+          content: const Text(
+            '确定要删除这条动态吗？删除后将无法恢复。',
+            style: TextStyle(
+              fontSize: 16,
+              color: AppColors.textSecondary,
+            ),
+          ),
+          backgroundColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text(
+                '取消',
+                style: TextStyle(
+                  color: AppColors.textSecondary,
+                  fontSize: 16,
+                ),
+              ),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                _deletePost();
+              },
+              child: const Text(
+                '删除',
+                style: TextStyle(
+                  color: Colors.red,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  // 删除动态
+  void _deletePost() {
+    // 执行删除操作
+    final success = _dataService.deletePost(widget.post.id);
+    
+    if (success) {
+      // 显示成功提示
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('动态已删除'),
+          backgroundColor: AppColors.accent,
+          duration: Duration(milliseconds: 1000),
+        ),
+      );
+      
+      // 延迟一点时间后返回到上一页，并传递刷新标识
+      Future.delayed(const Duration(milliseconds: 300), () {
+        Navigator.of(context).pop(true); // 返回true表示需要刷新列表
+      });
+    } else {
+      // 显示失败提示
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('删除失败，只能删除自己发布的动态'),
+          backgroundColor: Colors.red,
+          duration: Duration(milliseconds: 2000),
+        ),
+      );
+    }
   }
 } 

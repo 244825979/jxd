@@ -15,7 +15,7 @@ class PlazaScreen extends StatefulWidget {
   State<PlazaScreen> createState() => _PlazaScreenState();
 }
 
-class _PlazaScreenState extends State<PlazaScreen> {
+class _PlazaScreenState extends State<PlazaScreen> with WidgetsBindingObserver {
   final DataService _dataService = DataService.getInstance();
   List<Post> _posts = [];
   List<String> _hotTopics = [];
@@ -26,14 +26,25 @@ class _PlazaScreenState extends State<PlazaScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _loadData();
     _startAutoRefresh();
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _refreshTimer?.cancel();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    // 当应用重新获得焦点时刷新数据
+    if (state == AppLifecycleState.resumed) {
+      _loadData();
+    }
   }
 
   // 启动自动刷新（由于审核状态不会自动改变，暂时禁用）
@@ -335,6 +346,14 @@ class _PlazaScreenState extends State<PlazaScreen> {
                 color: post.isBookmarked ? AppColors.accent : AppColors.textSecondary,
                 onTap: () => _toggleBookmark(post.id),
               ),
+              // 只有不是自己发布的动态才显示屏蔽按钮
+              if (!_dataService.isMyPost(post.id))
+                _buildActionButton(
+                  icon: Icons.block_outlined,
+                  label: '',
+                  color: Colors.grey.shade600,
+                  onTap: () => _blockPost(post.id),
+                ),
             ],
           ),
         ],
@@ -408,6 +427,49 @@ class _PlazaScreenState extends State<PlazaScreen> {
         content: Text(newBookmarkStatus ? '已收藏' : '已取消收藏'),
         backgroundColor: newBookmarkStatus ? AppColors.accent : AppColors.textSecondary,
         duration: const Duration(milliseconds: 800),
+      ),
+    );
+  }
+
+  // 屏蔽功能
+  void _blockPost(String postId) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('屏蔽内容'),
+        content: const Text('确定要屏蔽这条内容吗？\n屏蔽后该内容将不再在动态列表中显示。'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('取消'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              
+              // 执行屏蔽操作
+              _dataService.blockPost(postId);
+              
+              // 刷新动态列表
+              setState(() {
+                _posts = _dataService.getPosts();
+              });
+              
+              // 显示成功提示
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('已屏蔽该内容'),
+                  backgroundColor: AppColors.accent,
+                  duration: Duration(milliseconds: 1500),
+                ),
+              );
+            },
+            child: const Text(
+              '确定屏蔽',
+              style: TextStyle(color: Colors.red),
+            ),
+          ),
+        ],
       ),
     );
   }

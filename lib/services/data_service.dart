@@ -144,6 +144,9 @@ class DataService {
   // 举报数据存储
   final List<Report> _reports = [];
 
+  // 被屏蔽动态ID列表
+  final Set<String> _blockedPostIds = {};
+
   // 静态帖子数据 - 图片和纯文字动态交错排列
   List<Post> _posts = [
     // 1. 带图片
@@ -642,6 +645,10 @@ class DataService {
   // 获取帖子列表（带用户点赞状态和实际评论数）
   List<Post> getPosts({int? limit}) {
     var posts = List<Post>.from(_posts);
+    
+    // 过滤掉被屏蔽的动态
+    posts = posts.where((post) => !_blockedPostIds.contains(post.id)).toList();
+    
     posts.sort((a, b) => b.createdAt.compareTo(a.createdAt));
     
     // 根据用户的点赞数据设置 isLiked 状态，设置收藏状态，并设置实际评论数
@@ -1332,5 +1339,76 @@ class DataService {
     }
 
     return stats;
+  }
+
+  // ============ 屏蔽相关方法 ============
+
+  // 屏蔽动态
+  void blockPost(String postId) {
+    _blockedPostIds.add(postId);
+  }
+
+  // 取消屏蔽动态
+  void unblockPost(String postId) {
+    _blockedPostIds.remove(postId);
+  }
+
+  // 检查动态是否被屏蔽
+  bool isPostBlocked(String postId) {
+    return _blockedPostIds.contains(postId);
+  }
+
+  // 获取被屏蔽的动态ID列表
+  Set<String> getBlockedPostIds() {
+    return Set<String>.from(_blockedPostIds);
+  }
+
+  // 根据ID获取被屏蔽的动态详情（不受过滤影响）
+  Post? getBlockedPostById(String id) {
+    try {
+      final post = _posts.firstWhere((post) => post.id == id);
+      final commentsForPost = _comments[post.id] ?? [];
+      return post.copyWith(
+        isLiked: _userData.isPostLiked(post.id),
+        isBookmarked: _userData.isPostBookmarked(post.id),
+        commentCount: commentsForPost.length,
+        status: post.status,
+      );
+    } catch (e) {
+      return null;
+    }
+  }
+
+  // 判断动态是否为当前用户发布
+  bool isMyPost(String postId) {
+    return _userData.myPostIds.contains(postId);
+  }
+
+  // 根据动态作者名称判断是否为当前用户发布（备用方法）
+  bool isMyPostByAuthor(String authorName) {
+    return authorName == _currentUser.nickname;
+  }
+
+  // 删除动态
+  bool deletePost(String postId) {
+    // 检查是否为当前用户发布的动态
+    if (!isMyPost(postId)) {
+      return false; // 不允许删除他人动态
+    }
+
+    // 从动态列表中移除
+    _posts.removeWhere((post) => post.id == postId);
+    
+    // 从用户发布列表中移除
+    _userData = _userData.removeMyPost(postId);
+    
+    // 删除相关的评论
+    _comments.remove(postId);
+    
+    // 从所有用户的点赞和收藏列表中移除
+    _userData = _userData.removeLikedPost(postId);
+    _userData = _userData.removeBookmarkedPost(postId);
+    
+    return true;
   }
 } 
