@@ -11,6 +11,7 @@ import 'feedback_screen.dart';
 import 'wellness_tips_screen.dart';
 import 'achievements_screen.dart';
 import 'feature_intro_screen.dart';
+import 'coming_soon_screen.dart';
 
 class MessagesScreen extends StatefulWidget {
   const MessagesScreen({super.key});
@@ -80,6 +81,14 @@ class _MessagesScreenState extends State<MessagesScreen> {
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (context) => const MyPostsScreen(),
+      ),
+    );
+  }
+
+  void _navigateToComingSoon() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => const ComingSoonScreen(),
       ),
     );
   }
@@ -155,6 +164,9 @@ class _MessagesScreenState extends State<MessagesScreen> {
           break;
         case '/my_posts':
           _navigateToMyPosts();
+          break;
+        case '/coming_soon':
+          _navigateToComingSoon();
           break;
         default:
           _showNotificationDetail(notification);

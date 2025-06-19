@@ -653,8 +653,8 @@ class DataService {
     // 2. 成就徽章通知 - 最新
     NotificationItem(
       id: 'notif_achievement_2',
-      title: '🎖️ 获得新徽章：「情感导师」',
-      content: '恭喜！您已在社区发布了5条正能量内容，获得「情感导师」徽章！',
+      title: '🎖️ 获得新徽章：「首次使用app」',
+      content: '恭喜！欢迎来到静心岛，获得「首次使用app」徽章！',
       type: NotificationType.achievement,
       createdAt: DateTime.now().subtract(const Duration(minutes: 15)),
       routeName: '/achievements',
@@ -663,12 +663,12 @@ class DataService {
     // 3. 系统公告通知
     NotificationItem(
       id: 'notif_system_1',
-      title: '📢 静心岛新功能上线',
-      content: '全新「情绪日记」功能已上线！支持语音记录，AI智能分析，让心情记录更简单。',
+      title: '📢 静心岛新功能敬请期待',
+      content: '我们正在开发更多精彩功能，包括情绪日记、冥想指导等，敬请期待！',
       type: NotificationType.system,
       createdAt: DateTime.now().subtract(const Duration(hours: 8)),
-      routeName: '/feature_intro',
-      routeParams: {'feature': 'mood_diary'},
+      routeName: '/coming_soon',
+      routeParams: null,
     ),
     
     // 原有通知
