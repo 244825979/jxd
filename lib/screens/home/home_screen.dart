@@ -4,6 +4,7 @@ import '../../constants/app_strings.dart';
 
 import '../../widgets/common/custom_card.dart';
 import '../../widgets/common/mood_selector.dart';
+import '../../widgets/common/ai_avatar.dart';
 import '../../services/data_service.dart';
 import '../../services/storage_service.dart';
 import '../../services/player_service.dart';
@@ -571,17 +572,13 @@ class _HomeScreenState extends State<HomeScreen> {
                 children: [
                   // 左侧图标
                   Container(
-                    width: 70,
-                    height: 70,
                     decoration: BoxDecoration(
-                      color: AppColors.primary,
                       shape: BoxShape.circle,
                       border: Border.all(color: AppColors.accent.withOpacity(0.3), width: 2),
                     ),
-                    child: const Icon(
-                      Icons.smart_toy,
-                      size: 36,
-                      color: AppColors.accent,
+                    child: const AIAvatar(
+                      size: 70,
+                      backgroundColor: AppColors.primary,
                     ),
                   ),
                   const SizedBox(width: 16),

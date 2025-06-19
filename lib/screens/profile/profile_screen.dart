@@ -14,6 +14,7 @@ import 'my_reports_screen.dart';
 import 'my_blocked_posts_screen.dart';
 import 'my_posts_screen.dart';
 import 'my_feedbacks_screen.dart';
+import 'settings_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -288,7 +289,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         Icons.settings_outlined,
                         const Color(0xFF3498DB),
                         () {
-                          // TODO: 跳转到设置页面
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const SettingsScreen(),
+                            ),
+                          );
                         },
                       ),
                     ),

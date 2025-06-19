@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../constants/app_colors.dart';
 import '../../constants/app_strings.dart';
 import '../../services/data_service.dart';
+import '../../widgets/common/ai_avatar.dart';
 
 class AIChatScreen extends StatefulWidget {
   const AIChatScreen({super.key});
@@ -91,14 +92,9 @@ class _AIChatScreenState extends State<AIChatScreen> {
         elevation: 0,
         title: Row(
           children: [
-            Container(
-              width: 40,
-              height: 40,
-              decoration: const BoxDecoration(
-                color: AppColors.accent,
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(Icons.smart_toy, color: Colors.white),
+            const AIAvatar(
+              size: 40,
+              backgroundColor: AppColors.accent,
             ),
             const SizedBox(width: 12),
             const Column(
@@ -156,14 +152,10 @@ class _AIChatScreenState extends State<AIChatScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (isAI) ...[
-            Container(
-              width: 32,
-              height: 32,
-              decoration: const BoxDecoration(
-                color: AppColors.accent,
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(Icons.smart_toy, color: Colors.white, size: 16),
+            const AIAvatar(
+              size: 32,
+              backgroundColor: AppColors.accent,
+              iconSize: 16,
             ),
             const SizedBox(width: 12),
           ],
@@ -196,14 +188,10 @@ class _AIChatScreenState extends State<AIChatScreen> {
       padding: const EdgeInsets.only(bottom: 16),
       child: Row(
         children: [
-          Container(
-            width: 32,
-            height: 32,
-            decoration: const BoxDecoration(
-              color: AppColors.accent,
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(Icons.smart_toy, color: Colors.white, size: 16),
+          const AIAvatar(
+            size: 32,
+            backgroundColor: AppColors.accent,
+            iconSize: 16,
           ),
           const SizedBox(width: 12),
           Container(

@@ -4,6 +4,7 @@ import '../../constants/app_strings.dart';
 import '../../services/data_service.dart';
 import '../../models/notification.dart';
 import '../../widgets/common/custom_card.dart';
+import '../../widgets/common/ai_avatar.dart';
 import '../home/ai_chat_screen.dart';
 import 'feedback_screen.dart';
 
@@ -97,18 +98,10 @@ class _MessagesScreenState extends State<MessagesScreen> {
               onTap: _navigateToAIChat,
               child: Row(
                 children: [
-                  Container(
-                    width: 60,
-                    height: 60,
-                    decoration: const BoxDecoration(
-                      color: AppColors.accent,
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(
-                      Icons.smart_toy,
-                      color: Colors.white,
-                      size: 30,
-                    ),
+                  const AIAvatar(
+                    size: 60,
+                    backgroundColor: AppColors.accent,
+                    iconSize: 30,
                   ),
                   const SizedBox(width: 16),
                   const Expanded(
