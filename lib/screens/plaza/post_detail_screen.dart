@@ -3,6 +3,7 @@ import '../../constants/app_colors.dart';
 import '../../models/post.dart';
 import '../../models/comment.dart';
 import '../../services/data_service.dart';
+import 'report_post_screen.dart';
 
 class PostDetailScreen extends StatefulWidget {
   final Post post;
@@ -59,65 +60,67 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
     super.dispose();
   }
 
+  // 统一的返回处理方法
+  void _handleBack() {
+    Navigator.pop(context, _hasStateChanged);
+  }
+
+  // 系统返回处理（只处理系统返回手势）
+  void _handleSystemBack() {
+    Navigator.pop(context, _hasStateChanged);
+  }
+
   @override
   Widget build(BuildContext context) {
-    return PopScope(
-      canPop: true,
-      onPopInvoked: (bool didPop) {
-        if (didPop && _hasStateChanged) {
-          // 通知上一页刷新数据
-          Navigator.of(context).pop(true);
-        }
-      },
-      child: Scaffold(
+    return Scaffold(
+      backgroundColor: AppColors.primary,
+      appBar: AppBar(
         backgroundColor: AppColors.primary,
-        appBar: AppBar(
-          backgroundColor: AppColors.primary,
-          elevation: 0,
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back_ios, color: AppColors.textPrimary),
-            onPressed: () {
-              Navigator.pop(context, _hasStateChanged);
-            },
-          ),
-          title: const Text(
-            '动态详情',
-            style: TextStyle(
-              color: AppColors.textPrimary,
-              fontSize: 18,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          centerTitle: true,
-          actions: [
-            IconButton(
-              icon: const Icon(Icons.more_horiz, color: AppColors.textPrimary),
-              onPressed: _showMoreOptions,
-            ),
-          ],
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios, color: AppColors.textPrimary),
+          onPressed: _handleBack,
         ),
-        body: Column(
-          children: [
-            // 动态内容区域
-            Expanded(
-              child: SingleChildScrollView(
-                child: Column(
-                  children: [
-                    // 动态卡片
-                    _buildPostCard(),
-                    const SizedBox(height: 12),
+        title: const Text(
+          '动态详情',
+          style: TextStyle(
+            color: AppColors.textPrimary,
+            fontSize: 18,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        centerTitle: true,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.more_horiz, color: AppColors.textPrimary),
+            onPressed: _showMoreOptions,
+          ),
+        ],
+      ),
+      body: Column(
+        children: [
+          // 动态内容区域
+          Expanded(
+            child: SingleChildScrollView(
+              child: Column(
+                children: [
+                  // 动态卡片
+                  _buildPostCard(),
+                  const SizedBox(height: 12),
 
-                    // 评论列表
-                    _buildCommentsSection(),
-                  ],
-                ),
+                  // 评论列表
+                  _buildCommentsSection(),
+                  
+                  // 底部间距，避免评论列表贴底
+                  const SizedBox(height: 20),
+                ],
               ),
             ),
+          ),
 
-            // 评论输入框
-            _buildCommentInput(),
-          ],
-        ),
+          // 评论输入框
+          _buildCommentInput(),
+        ],
       ),
     );
   }
@@ -526,7 +529,8 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
         left: 16,
         right: 16,
         top: 12,
-        bottom: MediaQuery.of(context).viewInsets.bottom + 12,
+        bottom: MediaQuery.of(context).viewInsets.bottom + 
+               MediaQuery.of(context).padding.bottom + 16, // 考虑安全区域 + 额外间距
       ),
       decoration: BoxDecoration(
         color: Colors.white,
@@ -759,11 +763,14 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                 ),
               ),
               const SizedBox(height: 20),
-              _buildOptionItem(Icons.share, '分享动态', () {
-                Navigator.pop(context);
-              }),
               _buildOptionItem(Icons.flag_outlined, '举报', () {
                 Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => ReportPostScreen(post: widget.post),
+                  ),
+                );
               }),
               _buildOptionItem(Icons.block, '屏蔽用户', () {
                 Navigator.pop(context);

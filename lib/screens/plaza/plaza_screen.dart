@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../constants/app_colors.dart';
 import '../../constants/app_strings.dart';
@@ -19,17 +20,68 @@ class _PlazaScreenState extends State<PlazaScreen> {
   List<Post> _posts = [];
   List<String> _hotTopics = [];
   String? _selectedTopic;
+  bool _isNavigating = false; // 防止重复导航
+  Timer? _refreshTimer;
 
   @override
   void initState() {
     super.initState();
     _loadData();
+    _startAutoRefresh();
+  }
+
+  @override
+  void dispose() {
+    _refreshTimer?.cancel();
+    super.dispose();
+  }
+
+  // 启动自动刷新（由于审核状态不会自动改变，暂时禁用）
+  void _startAutoRefresh() {
+    // 由于审核状态保持不变，不需要自动刷新
+    // _refreshTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+    //   // 检查是否有审核中的动态需要更新
+    //   final hasUpdates = _posts.any((post) => post.status == PostStatus.pending);
+    //   if (hasUpdates) {
+    //     setState(() {
+    //       _posts = _dataService.getPosts();
+    //     });
+    //   }
+    // });
   }
 
   void _loadData() {
     setState(() {
       _posts = _dataService.getPosts();
       _hotTopics = _dataService.getHotTopics();
+    });
+  }
+
+  // 防重复导航的导航方法
+  void _navigateToDetail(Post post) {
+    if (_isNavigating) return; // 如果正在导航，直接返回
+    
+    _isNavigating = true;
+    
+    // 使用 Future.microtask 来避免在 build 过程中导航
+    Future.microtask(() async {
+      try {
+        final result = await Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => PostDetailScreen(post: post),
+          ),
+        );
+        
+        // 如果从详情页返回，刷新数据
+        if (result == true) {
+          _loadData();
+        }
+      } catch (e) {
+        print('Navigation error: $e');
+      } finally {
+        _isNavigating = false; // 导航完成后重置标志
+      }
     });
   }
 
@@ -94,8 +146,8 @@ class _PlazaScreenState extends State<PlazaScreen> {
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton.icon(
-                      onPressed: _selectedTopic != null ? () {
-                        Navigator.push(
+                      onPressed: _selectedTopic != null ? () async {
+                        final result = await Navigator.push(
                           context,
                           MaterialPageRoute(
                             builder: (context) => PublishPostScreen(
@@ -103,6 +155,13 @@ class _PlazaScreenState extends State<PlazaScreen> {
                             ),
                           ),
                         );
+                        
+                        // 如果发布成功，刷新动态列表
+                        if (result == true) {
+                          setState(() {
+                            _posts = _dataService.getPosts();
+                          });
+                        }
                       } : null,
                       icon: const Icon(Icons.edit, color: Colors.white),
                       label: Text(
@@ -132,19 +191,7 @@ class _PlazaScreenState extends State<PlazaScreen> {
 
   Widget _buildPostCard(Post post) {
     return GestureDetector(
-      onTap: () async {
-        final result = await Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => PostDetailScreen(post: post),
-          ),
-        );
-        
-        // 如果从详情页返回，刷新数据
-        if (result == true) {
-          _loadData();
-        }
-      },
+      onTap: () => _navigateToDetail(post),
       child: CustomCard(
         margin: const EdgeInsets.only(bottom: 16),
         child: Column(
@@ -184,13 +231,22 @@ class _PlazaScreenState extends State<PlazaScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      post.authorName,
-                      style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.textPrimary,
-                      ),
+                    Row(
+                      children: [
+                        Text(
+                          post.authorName,
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
+                        // 审核状态标签
+                        if (post.status != PostStatus.approved) ...[
+                          const SizedBox(width: 8),
+                          _buildStatusBadge(post.status),
+                        ],
+                      ],
                     ),
                     Text(
                       post.timeAgo,
@@ -271,17 +327,7 @@ class _PlazaScreenState extends State<PlazaScreen> {
                 icon: Icons.chat_bubble_outline,
                 label: post.commentCount.toString(),
                 color: AppColors.textSecondary,
-                onTap: () async {
-                  final result = await Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => PostDetailScreen(post: post),
-                    ),
-                  );
-                  if (result == true) {
-                    _loadData();
-                  }
-                },
+                onTap: () => _navigateToDetail(post),
               ),
               _buildActionButton(
                 icon: post.isBookmarked ? Icons.bookmark : Icons.bookmark_border,
@@ -301,25 +347,29 @@ class _PlazaScreenState extends State<PlazaScreen> {
     required IconData icon,
     required String label,
     required Color color,
-    required VoidCallback onTap,
+    required VoidCallback? onTap,
   }) {
     return GestureDetector(
       onTap: onTap,
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 20, color: color),
-          if (label.isNotEmpty) ...[
-            const SizedBox(width: 4),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 12,
-                color: color,
+      behavior: HitTestBehavior.opaque, // 阻止事件冒泡
+      child: Container(
+        padding: const EdgeInsets.all(4), // 增加点击区域
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 20, color: color),
+            if (label.isNotEmpty) ...[
+              const SizedBox(width: 4),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: color,
+                ),
               ),
-            ),
+            ],
           ],
-        ],
+        ),
       ),
     );
   }
@@ -411,6 +461,66 @@ class _PlazaScreenState extends State<PlazaScreen> {
             fontWeight: FontWeight.w500,
           ),
         ),
+      ),
+    );
+  }
+
+  // 构建审核状态标签
+  Widget _buildStatusBadge(PostStatus status) {
+    Color backgroundColor;
+    Color textColor;
+    String text;
+    IconData icon;
+
+    switch (status) {
+      case PostStatus.pending:
+        backgroundColor = Colors.orange.shade100;
+        textColor = Colors.orange.shade700;
+        text = '审核中';
+        icon = Icons.hourglass_empty;
+        break;
+      case PostStatus.approved:
+        backgroundColor = Colors.green.shade100;
+        textColor = Colors.green.shade700;
+        text = '已通过';
+        icon = Icons.check_circle_outline;
+        break;
+      case PostStatus.rejected:
+        backgroundColor = Colors.red.shade100;
+        textColor = Colors.red.shade700;
+        text = '未通过';
+        icon = Icons.error_outline;
+        break;
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: backgroundColor,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(
+          color: textColor.withOpacity(0.3),
+          width: 0.5,
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            icon,
+            size: 10,
+            color: textColor,
+          ),
+          const SizedBox(width: 2),
+          Text(
+            text,
+            style: TextStyle(
+              color: textColor,
+              fontSize: 10,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
       ),
     );
   }

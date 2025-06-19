@@ -9,6 +9,8 @@ import 'agreement_screen.dart';
 import 'about_screen.dart';
 import 'days_detail_screen.dart';
 import 'my_liked_posts_screen.dart';
+import 'my_bookmarked_posts_screen.dart';
+import 'my_reports_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -20,6 +22,7 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen> {
   bool _isInitialized = false;
   late User _currentUser;
+  late DataService _dataService;
 
   @override
   void initState() {
@@ -29,7 +32,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _initializeServices() async {
     await StorageService.getInstance();
-    _currentUser = DataService.getInstance().getCurrentUser();
+    _dataService = DataService.getInstance();
+    _currentUser = _dataService.getCurrentUser();
     setState(() {
       _isInitialized = true;
     });
@@ -188,11 +192,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         color: AppColors.textSecondary.withOpacity(0.2),
                       ),
                       Expanded(
-                        child: _buildStatItem(
-                          '收藏',
-                          _currentUser.collectionCount.toString(),
-                          Icons.bookmark,
-                          AppColors.accent,
+                        child: GestureDetector(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const MyBookmarkedPostsScreen(),
+                              ),
+                            ).then((_) {
+                              // 从收藏页面返回时刷新用户数据
+                              setState(() {
+                                _currentUser = _dataService.getCurrentUser();
+                              });
+                            });
+                          },
+                          child: _buildStatItem(
+                            '收藏',
+                            _currentUser.collectionCount.toString(),
+                            Icons.bookmark,
+                            AppColors.accent,
+                          ),
                         ),
                       ),
                       Container(
@@ -263,7 +282,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         Icons.flag_outlined,
                         const Color(0xFFE74C3C),
                         () {
-                          // TODO: 跳转到举报页面
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const MyReportsScreen(),
+                            ),
+                          );
                         },
                       ),
                     ),

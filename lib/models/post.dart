@@ -1,3 +1,10 @@
+// 审核状态枚举
+enum PostStatus {
+  pending,    // 审核中
+  approved,   // 已通过
+  rejected,   // 已拒绝
+}
+
 class Post {
   final String id;
   final String content;
@@ -10,6 +17,7 @@ class Post {
   final int commentCount;
   final bool isLiked;
   final bool isBookmarked;
+  final PostStatus status; // 审核状态
 
   Post({
     required this.id,
@@ -23,6 +31,7 @@ class Post {
     this.commentCount = 0,
     this.isLiked = false,
     this.isBookmarked = false,
+    this.status = PostStatus.approved, // 默认为已通过（现有动态）
   });
 
   Map<String, dynamic> toJson() {
@@ -38,6 +47,7 @@ class Post {
       'commentCount': commentCount,
       'isLiked': isLiked,
       'isBookmarked': isBookmarked,
+      'status': status.name,
     };
   }
 
@@ -54,6 +64,10 @@ class Post {
       commentCount: json['commentCount'] ?? 0,
       isLiked: json['isLiked'] ?? false,
       isBookmarked: json['isBookmarked'] ?? false,
+      status: PostStatus.values.firstWhere(
+        (s) => s.name == json['status'],
+        orElse: () => PostStatus.approved,
+      ),
     );
   }
 
@@ -69,6 +83,7 @@ class Post {
     int? commentCount,
     bool? isLiked,
     bool? isBookmarked,
+    PostStatus? status,
   }) {
     return Post(
       id: id ?? this.id,
@@ -82,6 +97,7 @@ class Post {
       commentCount: commentCount ?? this.commentCount,
       isLiked: isLiked ?? this.isLiked,
       isBookmarked: isBookmarked ?? this.isBookmarked,
+      status: status ?? this.status,
     );
   }
 
@@ -97,6 +113,30 @@ class Post {
       return '${difference.inMinutes}分钟前';
     } else {
       return '刚刚';
+    }
+  }
+
+  // 获取审核状态的显示文本
+  String get statusText {
+    switch (status) {
+      case PostStatus.pending:
+        return '审核中';
+      case PostStatus.approved:
+        return '已通过';
+      case PostStatus.rejected:
+        return '未通过';
+    }
+  }
+
+  // 获取审核状态的颜色
+  String get statusColor {
+    switch (status) {
+      case PostStatus.pending:
+        return 'orange';
+      case PostStatus.approved:
+        return 'green';
+      case PostStatus.rejected:
+        return 'red';
     }
   }
 } 

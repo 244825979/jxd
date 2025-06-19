@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/gestures.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import '../../constants/app_colors.dart';
 import '../../constants/app_strings.dart';
 import '../../widgets/common/custom_card.dart';
+import '../../services/data_service.dart';
+import 'community_rules_screen.dart';
+import '../profile/agreement_screen.dart';
 
 class PublishPostScreen extends StatefulWidget {
   final String selectedTopic;
@@ -20,7 +24,9 @@ class PublishPostScreen extends StatefulWidget {
 class _PublishPostScreenState extends State<PublishPostScreen> {
   final TextEditingController _contentController = TextEditingController();
   final ImagePicker _imagePicker = ImagePicker();
+  final DataService _dataService = DataService.getInstance();
   File? _selectedImage;
+  File? _imageFile;
   bool _isPublishing = false;
 
   // 为每个话题分配暖色系颜色的映射
@@ -186,6 +192,7 @@ class _PublishPostScreenState extends State<PublishPostScreen> {
       if (image != null) {
         setState(() {
           _selectedImage = File(image.path);
+          _imageFile = File(image.path);
         });
       }
     } catch (e) {
@@ -254,20 +261,40 @@ class _PublishPostScreenState extends State<PublishPostScreen> {
     // 模拟发布过程
     await Future.delayed(const Duration(seconds: 1));
 
-    setState(() {
-      _isPublishing = false;
-    });
+    try {
+      // 调用DataService发布动态
+      _dataService.publishPost(
+        content: content,
+        imageUrl: _imageFile?.path,
+        selectedTopic: widget.selectedTopic,
+      );
 
-    // 显示发布成功提示
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('发布成功！'),
-        backgroundColor: AppColors.accent,
-      ),
-    );
+      setState(() {
+        _isPublishing = false;
+      });
 
-    // 返回上一页
-    Navigator.pop(context);
+      // 显示发布成功提示
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('发布成功！动态审核中...'),
+          backgroundColor: AppColors.accent,
+        ),
+      );
+
+      // 返回上一页，并传递刷新标识
+      Navigator.pop(context, true);
+    } catch (e) {
+      setState(() {
+        _isPublishing = false;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('发布失败，请重试'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   @override
@@ -290,19 +317,6 @@ class _PublishPostScreenState extends State<PublishPostScreen> {
           ),
         ),
         centerTitle: true,
-        actions: [
-          TextButton(
-            onPressed: _isPublishing ? null : _publishPost,
-            child: Text(
-              '发布',
-              style: TextStyle(
-                color: _isPublishing ? AppColors.textSecondary : AppColors.accent,
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-        ],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
@@ -350,94 +364,6 @@ class _PublishPostScreenState extends State<PublishPostScreen> {
             ),
             const SizedBox(height: 16),
 
-            // 违规内容提示
-            CustomCard(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.warning_amber_rounded,
-                        color: Colors.red.shade600,
-                        size: 20,
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        '发布规则',
-                        style: TextStyle(
-                          color: Colors.red.shade600,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Colors.red.shade50,
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(
-                        color: Colors.red.shade200,
-                        width: 1,
-                      ),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          '🚫 严禁发布以下违规内容：',
-                          style: TextStyle(
-                            color: Colors.red.shade700,
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        _buildRuleItem('• 色情、淫秽、低俗内容'),
-                        _buildRuleItem('• 暴力、血腥、恐怖内容'),
-                        _buildRuleItem('• 辱骂、诽谤、人身攻击'),
-                        _buildRuleItem('• 仇恨言论、歧视性内容'),
-                        _buildRuleItem('• 政治敏感、违法违规信息'),
-                        _buildRuleItem('• 恶意刷屏、垃圾广告'),
-                        const SizedBox(height: 12),
-                        Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: Colors.red.shade100,
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: Row(
-                            children: [
-                              Icon(
-                                Icons.gavel,
-                                color: Colors.red.shade700,
-                                size: 16,
-                              ),
-                              const SizedBox(width: 6),
-                              Expanded(
-                                child: Text(
-                                  '违规处罚：警告 → 限制发布 → 永久封禁',
-                                  style: TextStyle(
-                                    color: Colors.red.shade700,
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 16),
-
             // 动态内容输入
             CustomCard(
               child: Column(
@@ -454,8 +380,8 @@ class _PublishPostScreenState extends State<PublishPostScreen> {
                   const SizedBox(height: 12),
                   TextField(
                     controller: _contentController,
-                    maxLines: 8,
-                    maxLength: 500,
+                    maxLines: 4,
+                    maxLength: 160,
                     decoration: const InputDecoration(
                       hintText: '写下你想分享的心情和感受...',
                       hintStyle: TextStyle(
@@ -560,7 +486,7 @@ class _PublishPostScreenState extends State<PublishPostScreen> {
                       onTap: _pickImage,
                       child: Container(
                         width: double.infinity,
-                        height: 120,
+                        height: 160,
                         decoration: BoxDecoration(
                           color: AppColors.primary,
                           borderRadius: BorderRadius.circular(12),
@@ -629,33 +555,87 @@ class _PublishPostScreenState extends State<PublishPostScreen> {
             ),
             const SizedBox(height: 16),
 
-            // 发布提示
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: AppColors.accent.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: AppColors.accent.withOpacity(0.3),
-                  width: 1,
-                ),
-              ),
-              child: Row(
+            // 违规内容提示
+            CustomCard(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Icon(
-                    Icons.info_outline,
-                    color: AppColors.accent,
-                    size: 20,
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      '你的动态将以匿名方式发布，其他用户无法看到你的真实身份',
-                      style: TextStyle(
-                        color: AppColors.accent,
-                        fontSize: 12,
-                        height: 1.3,
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.warning_amber_rounded,
+                        color: Colors.red.shade600,
+                        size: 20,
                       ),
+                      const SizedBox(width: 8),
+                      Text(
+                        '发布规则',
+                        style: TextStyle(
+                          color: Colors.red.shade600,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.red.shade50,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: Colors.red.shade200,
+                        width: 1,
+                      ),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '🚫 严禁发布以下违规内容：',
+                          style: TextStyle(
+                            color: Colors.red.shade700,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        _buildRuleItem('• 色情、淫秽、低俗内容'),
+                        _buildRuleItem('• 暴力、血腥、恐怖内容'),
+                        _buildRuleItem('• 辱骂、诽谤、人身攻击'),
+                        _buildRuleItem('• 仇恨言论、歧视性内容'),
+                        _buildRuleItem('• 政治敏感、违法违规信息'),
+                        _buildRuleItem('• 恶意刷屏、垃圾广告'),
+                        const SizedBox(height: 12),
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: Colors.red.shade100,
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.gavel,
+                                color: Colors.red.shade700,
+                                size: 16,
+                              ),
+                              const SizedBox(width: 6),
+                              Expanded(
+                                child: Text(
+                                  '违规处罚：警告 → 限制发布 → 永久封禁',
+                                  style: TextStyle(
+                                    color: Colors.red.shade700,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],
@@ -697,6 +677,15 @@ class _PublishPostScreenState extends State<PublishPostScreen> {
                             color: AppColors.accent,
                             decoration: TextDecoration.underline,
                           ),
+                          recognizer: TapGestureRecognizer()
+                            ..onTap = () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => const CommunityRulesScreen(),
+                                ),
+                              );
+                            },
                         ),
                         const TextSpan(text: '和'),
                         TextSpan(
@@ -705,42 +694,21 @@ class _PublishPostScreenState extends State<PublishPostScreen> {
                             color: AppColors.accent,
                             decoration: TextDecoration.underline,
                           ),
+                          recognizer: TapGestureRecognizer()
+                            ..onTap = () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => const AgreementScreen(),
+                                ),
+                              );
+                            },
                         ),
                         const TextSpan(text: '。我们致力于营造温暖、友善的社区环境，感谢您的理解与配合。'),
                       ],
                     ),
                   ),
-                  const SizedBox(height: 8),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: Colors.amber.shade50,
-                      borderRadius: BorderRadius.circular(4),
-                      border: Border.all(
-                        color: Colors.amber.shade200,
-                        width: 0.5,
-                      ),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.security,
-                          color: Colors.amber.shade700,
-                          size: 12,
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          '系统将自动检测违规内容并进行相应处理',
-                          style: TextStyle(
-                            color: Colors.amber.shade700,
-                            fontSize: 10,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+
                 ],
               ),
             ),

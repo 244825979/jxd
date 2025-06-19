@@ -4,6 +4,7 @@ import '../models/comment.dart';
 import '../models/notification.dart';
 import '../models/user.dart';
 import '../models/user_data.dart';
+import '../models/report.dart';
 import '../constants/app_images.dart';
 
 class DataService {
@@ -140,6 +141,9 @@ class DataService {
   // 评论数据存储 - 按 postId 分组存储评论
   final Map<String, List<Comment>> _comments = {};
 
+  // 举报数据存储
+  final List<Report> _reports = [];
+
   // 静态帖子数据 - 图片和纯文字动态交错排列
   List<Post> _posts = [
     // 1. 带图片
@@ -164,7 +168,6 @@ class DataService {
       authorName: '温柔的风',
       likeCount: 67,
       commentCount: 0, // 将被动态设置
-      isBookmarked: true,
     ),
     // 3. 带图片
     Post(
@@ -189,7 +192,6 @@ class DataService {
       authorName: '春暖花开的心',
       likeCount: 45,
       commentCount: 0, // 将被动态设置
-      isBookmarked: true,
     ),
     // 5. 纯文字
     Post(
@@ -225,7 +227,6 @@ class DataService {
       authorName: '午后咖啡香',
       likeCount: 67,
       commentCount: 0, // 将被动态设置
-      isBookmarked: true,
     ),
     // 8. 纯文字
     Post(
@@ -295,7 +296,6 @@ class DataService {
       authorName: '童心未泯',
       likeCount: 78,
       commentCount: 0, // 将被动态设置
-      isBookmarked: true,
     ),
     // 14. 带图片
     Post(
@@ -308,7 +308,6 @@ class DataService {
       authorName: '爱的见证者',
       likeCount: 76,
       commentCount: 0, // 将被动态设置
-      isBookmarked: true,
     ),
     // 15. 带图片
     Post(
@@ -356,7 +355,6 @@ class DataService {
       authorName: '晨光追梦人',
       likeCount: 61,
       commentCount: 0, // 将被动态设置
-      isBookmarked: true,
     ),
     // 19. 纯文字
     Post(
@@ -415,7 +413,6 @@ class DataService {
       authorName: '森林漫步者',
       likeCount: 72,
       commentCount: 0, // 将被动态设置
-      isBookmarked: true,
     ),
     // 24. 带图片
     Post(
@@ -439,7 +436,6 @@ class DataService {
       authorName: '内心倾听者',
       likeCount: 58,
       commentCount: 0, // 将被动态设置
-      isBookmarked: true,
     ),
     // 26. 带图片
     Post(
@@ -464,7 +460,6 @@ class DataService {
       authorName: '便利店常客',
       likeCount: 56,
       commentCount: 0, // 将被动态设置
-      isBookmarked: true,
     ),
     // 28. 纯文字
     Post(
@@ -476,7 +471,6 @@ class DataService {
       authorName: '勇敢的心',
       likeCount: 103,
       commentCount: 0, // 将被动态设置
-      isBookmarked: true,
     ),
     // 29. 带图片
     Post(
@@ -650,12 +644,15 @@ class DataService {
     var posts = List<Post>.from(_posts);
     posts.sort((a, b) => b.createdAt.compareTo(a.createdAt));
     
-    // 根据用户的点赞数据设置 isLiked 状态，并设置实际评论数
+    // 根据用户的点赞数据设置 isLiked 状态，设置收藏状态，并设置实际评论数
     posts = posts.map((post) {
       final commentsForPost = _comments[post.id] ?? [];
       return post.copyWith(
         isLiked: _userData.isPostLiked(post.id),
+        isBookmarked: _userData.isPostBookmarked(post.id),
         commentCount: commentsForPost.length,
+        // 保留原来的状态，不要重置
+        status: post.status,
       );
     }).toList();
     
@@ -675,6 +672,8 @@ class DataService {
         isLiked: _userData.isPostLiked(post.id),
         isBookmarked: _userData.isPostBookmarked(post.id),
         commentCount: commentsForPost.length,
+        // 保留原来的状态，不要重置
+        status: post.status,
       );
     } catch (e) {
       return null;
@@ -1106,5 +1105,232 @@ class DataService {
     } else {
       return '谢谢你的分享。我会一直在这里陪伴你。如果有什么困扰，随时可以告诉我。';
     }
+  }
+
+  // 发布新动态
+  String publishPost({
+    required String content,
+    String? imageUrl,
+    required String selectedTopic,
+  }) {
+    // 生成新的动态ID
+    final postId = 'user_post_${DateTime.now().millisecondsSinceEpoch}';
+    
+    // 创建新的动态，设置为审核中状态
+    final newPost = Post(
+      id: postId,
+      content: content,
+      imageUrl: imageUrl,
+      tags: [selectedTopic],
+      createdAt: DateTime.now(),
+      authorAvatar: _currentUser.avatar,
+      authorName: _currentUser.nickname,
+      likeCount: 0,
+      commentCount: 0,
+      isLiked: false,
+      isBookmarked: false,
+      status: PostStatus.pending, // 设置为审核中
+    );
+
+    // 将新动态添加到列表前面（最新的在前）
+    _posts.insert(0, newPost);
+    
+    // 添加到用户的发布列表
+    _userData = _userData.addMyPost(postId);
+    
+    // 保持审核中状态，不自动通过审核
+    
+    return postId;
+  }
+
+  // 审核通过动态
+  void _approvePost(String postId) {
+    final postIndex = _posts.indexWhere((post) => post.id == postId);
+    if (postIndex != -1) {
+      _posts[postIndex] = _posts[postIndex].copyWith(
+        status: PostStatus.approved,
+      );
+    }
+  }
+
+  // 获取我发布的动态列表
+  List<Post> getMyPosts() {
+    final myPostIds = _userData.myPostIds;
+    final myPosts = <Post>[];
+    
+    for (final postId in myPostIds) {
+      final post = getPostById(postId);
+      if (post != null) {
+        myPosts.add(post);
+      }
+    }
+    
+    // 按发布时间排序（最新的在前面）
+    myPosts.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    
+    return myPosts;
+  }
+
+  // ============ 举报相关方法 ============
+
+  // 提交举报
+  String submitReport({
+    required String postId,
+    required String reason,
+    String? detail,
+  }) {
+    // 获取被举报的动态信息
+    final post = getPostById(postId);
+    if (post == null) {
+      throw Exception('动态不存在');
+    }
+
+    // 生成举报ID
+    final reportId = 'report_${DateTime.now().millisecondsSinceEpoch}';
+    
+    // 创建举报记录
+    final report = Report(
+      id: reportId,
+      reporterId: _currentUser.id,
+      reporterName: _currentUser.nickname,
+      postId: postId,
+      postAuthorId: post.authorName, // 简化处理，实际应该是作者ID
+      postAuthorName: post.authorName,
+      postContent: post.content,
+      reason: reason,
+      reasonText: Report.reasonMap[reason] ?? '其他原因',
+      detail: detail,
+      createdAt: DateTime.now(),
+      status: ReportStatus.pending,
+      result: ReportResult.none,
+    );
+
+    // 添加到举报列表
+    _reports.add(report);
+
+    return reportId;
+  }
+
+  // 获取我的举报列表
+  List<Report> getMyReports() {
+    final myReports = _reports.where((report) => 
+      report.reporterId == _currentUser.id
+    ).toList();
+    
+    // 检查并更新超过24小时的举报状态
+    _checkAndUpdateReportStatus();
+    
+    // 按举报时间排序（最新的在前）
+    myReports.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    
+    return myReports;
+  }
+
+  // 根据ID获取举报详情
+  Report? getReportById(String reportId) {
+    try {
+      return _reports.firstWhere((report) => report.id == reportId);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  // 检查并更新超过24小时的举报状态
+  void _checkAndUpdateReportStatus() {
+    final now = DateTime.now();
+    
+    for (int i = 0; i < _reports.length; i++) {
+      final report = _reports[i];
+      
+      // 只处理审核中的举报
+      if (report.status != ReportStatus.pending) continue;
+      
+      // 检查是否超过24小时
+      final timeDifference = now.difference(report.createdAt);
+      if (timeDifference.inHours >= 24) {
+        // 随机决定审核结果
+        final random = (report.createdAt.millisecondsSinceEpoch % 100);
+        late ReportStatus status;
+        late ReportResult result;
+        late String resultNote;
+
+        if (random < 30) {
+          // 30% 举报成立
+          status = ReportStatus.approved;
+          result = _getRandomApprovedResult();
+          resultNote = _getResultNote(result);
+        } else {
+          // 70% 举报不成立
+          status = ReportStatus.rejected;
+          result = ReportResult.noViolation;
+          resultNote = '经审核，该内容未违反社区规定。感谢您对社区环境的关注。';
+        }
+
+        // 更新举报状态
+        _reports[i] = report.copyWith(
+          status: status,
+          result: result,
+          resultNote: resultNote,
+          reviewedAt: now,
+          reviewerId: 'admin_001',
+          reviewerName: '社区管理员',
+        );
+      }
+    }
+  }
+
+  // 获取随机的处理结果（举报成立时）
+  ReportResult _getRandomApprovedResult() {
+    final results = [
+      ReportResult.contentRemoved,
+      ReportResult.userWarned,
+      ReportResult.userBanned,
+    ];
+    final index = DateTime.now().millisecond % results.length;
+    return results[index];
+  }
+
+  // 根据处理结果获取说明文本
+  String _getResultNote(ReportResult result) {
+    switch (result) {
+      case ReportResult.contentRemoved:
+        return '经审核，该内容确实违反了社区规定，我们已删除相关内容。感谢您的举报。';
+      case ReportResult.userWarned:
+        return '经审核，该内容违反社区规定，我们已对发布者进行警告处理。';
+      case ReportResult.userBanned:
+        return '经审核，该用户存在严重违规行为，我们已对其进行封禁处理。';
+      case ReportResult.noViolation:
+        return '经审核，该内容未违反社区规定。感谢您对社区环境的关注。';
+      case ReportResult.none:
+        return '正在审核中...';
+    }
+  }
+
+  // 获取举报统计信息
+  Map<String, int> getReportStats() {
+    final myReports = getMyReports();
+    final stats = <String, int>{
+      'total': myReports.length,
+      'pending': 0,
+      'approved': 0,
+      'rejected': 0,
+    };
+
+    for (final report in myReports) {
+      switch (report.status) {
+        case ReportStatus.pending:
+        case ReportStatus.processing:
+          stats['pending'] = stats['pending']! + 1;
+          break;
+        case ReportStatus.approved:
+          stats['approved'] = stats['approved']! + 1;
+          break;
+        case ReportStatus.rejected:
+          stats['rejected'] = stats['rejected']! + 1;
+          break;
+      }
+    }
+
+    return stats;
   }
 } 
