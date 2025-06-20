@@ -48,6 +48,7 @@ class MyApp extends StatelessWidget {
       home: SplashScreen(
         child: const PermissionWrapper(child: JXDApp()),
       ),
+      debugShowCheckedModeBanner: false,
     );
   }
 }
