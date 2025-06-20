@@ -8,11 +8,12 @@ import 'screens/splash_screen.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
-  // 设置状态栏样式
+  // 设置状态栏样式 - 统一为黑色图标
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
       statusBarColor: Colors.transparent,
-      statusBarIconBrightness: Brightness.light,
+      statusBarIconBrightness: Brightness.dark, // 黑色图标
+      statusBarBrightness: Brightness.light, // iOS适配
     ),
   );
 
@@ -35,6 +36,14 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: Colors.blue,
         scaffoldBackgroundColor: const Color(0xFFF5F6FA),
+        // 统一配置AppBar样式，确保状态栏为黑色
+        appBarTheme: const AppBarTheme(
+          systemOverlayStyle: SystemUiOverlayStyle(
+            statusBarColor: Colors.transparent,
+            statusBarIconBrightness: Brightness.dark,
+            statusBarBrightness: Brightness.light,
+          ),
+        ),
       ),
       home: SplashScreen(
         child: const PermissionWrapper(child: JXDApp()),
