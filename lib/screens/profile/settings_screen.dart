@@ -3,6 +3,8 @@ import 'package:flutter/cupertino.dart';
 import '../../constants/app_colors.dart';
 import '../../widgets/common/custom_card.dart';
 import '../../services/storage_service.dart';
+import '../../services/permission_service.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -13,6 +15,7 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   late StorageService _storageService;
+  late PermissionService _permissionService;
   
   // 设置项状态
   bool _notificationsEnabled = true;
@@ -21,6 +24,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _dataOptimization = true;
   String _selectedLanguage = '简体中文';
   String _selectedFontSize = '标准';
+  
+  // 权限状态
+  Map<String, PermissionStatus> _permissionStatuses = {};
   
   final List<String> _languages = ['简体中文'];
   final List<String> _fontSizes = ['标准'];
@@ -33,7 +39,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Future<void> _initializeSettings() async {
     _storageService = await StorageService.getInstance();
+    _permissionService = await PermissionService.getInstance();
     await _loadSettings();
+    await _loadPermissionStatuses();
   }
 
   Future<void> _loadSettings() async {
@@ -51,6 +59,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
       _dataOptimization = dataOptimization;
       _selectedLanguage = selectedLanguage;
       _selectedFontSize = selectedFontSize;
+    });
+  }
+
+  Future<void> _loadPermissionStatuses() async {
+    final statuses = await _permissionService.checkAllMediaPermissions();
+    setState(() {
+      _permissionStatuses = statuses;
     });
   }
 
@@ -384,6 +399,48 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
             const SizedBox(height: 20),
 
+            // 权限管理
+            _buildSectionTitle('权限管理'),
+            CustomCard(
+              child: Column(
+                children: [
+                  _buildPermissionItem(
+                    '相册权限',
+                    '选择和保存心情照片',
+                    Icons.photo_library_outlined,
+                    const Color(0xFF9C27B0),
+                    _permissionStatuses['photos'] ?? PermissionStatus.denied,
+                    () async {
+                      await _requestSinglePermission('photos');
+                    },
+                  ),
+                  _buildDivider(),
+                  _buildPermissionItem(
+                    '摄像头权限',
+                    '拍摄心情瞬间',
+                    Icons.camera_alt_outlined,
+                    const Color(0xFF2196F3),
+                    _permissionStatuses['camera'] ?? PermissionStatus.denied,
+                    () async {
+                      await _requestSinglePermission('camera');
+                    },
+                  ),
+                  _buildDivider(),
+                  _buildPermissionItem(
+                    '麦克风权限',
+                    '录制语音日记',
+                    Icons.mic_outlined,
+                    const Color(0xFFFF5722),
+                    _permissionStatuses['microphone'] ?? PermissionStatus.denied,
+                    () async {
+                      await _requestSinglePermission('microphone');
+                    },
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 20),
+
             // 存储管理
             _buildSectionTitle('存储管理'),
             CustomCard(
@@ -653,6 +710,155 @@ class _SettingsScreenState extends State<SettingsScreen> {
       margin: const EdgeInsets.symmetric(vertical: 8),
       height: 1,
       color: const Color(0xFFECF0F1),
+    );
+  }
+
+  Future<void> _requestSinglePermission(String permission) async {
+    bool result = false;
+    
+    switch (permission) {
+      case 'photos':
+        result = await _permissionService.requestPhotoLibraryPermission();
+        if (!result) {
+          await _permissionService.showPermissionSettingsDialog(context, '相册');
+        }
+        break;
+      case 'camera':
+        result = await _permissionService.requestCameraPermission();
+        if (!result) {
+          await _permissionService.showPermissionSettingsDialog(context, '摄像头');
+        }
+        break;
+      case 'microphone':
+        result = await _permissionService.requestMicrophonePermission();
+        if (!result) {
+          await _permissionService.showPermissionSettingsDialog(context, '麦克风');
+        }
+        break;
+    }
+    
+    // 刷新权限状态
+    await _loadPermissionStatuses();
+    
+    if (result) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('${permission == 'photos' ? '相册' : permission == 'camera' ? '摄像头' : '麦克风'}权限已授予'),
+          backgroundColor: const Color(0xFF4CAF50),
+        ),
+      );
+    }
+  }
+
+  Widget _buildPermissionItem(
+    String title,
+    String subtitle,
+    IconData icon,
+    Color iconColor,
+    PermissionStatus status,
+    VoidCallback onTap,
+  ) {
+    Color statusColor;
+    String statusText;
+    
+    switch (status) {
+      case PermissionStatus.granted:
+        statusColor = const Color(0xFF4CAF50);
+        statusText = '已授权';
+        break;
+      case PermissionStatus.denied:
+        statusColor = const Color(0xFFFF5722);
+        statusText = '被拒绝';
+        break;
+      case PermissionStatus.restricted:
+        statusColor = const Color(0xFFFF9800);
+        statusText = '受限制';
+        break;
+      case PermissionStatus.limited:
+        statusColor = const Color(0xFF2196F3);
+        statusText = '部分授权';
+        break;
+      case PermissionStatus.permanentlyDenied:
+        statusColor = const Color(0xFF9E9E9E);
+        statusText = '永久拒绝';
+        break;
+      default:
+        statusColor = const Color(0xFF9E9E9E);
+        statusText = '未知';
+        break;
+    }
+
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+        child: Row(
+          children: [
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: iconColor.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(
+                icon,
+                size: 20,
+                color: iconColor,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF2C3E50),
+                    ),
+                  ),
+                  Text(
+                    subtitle,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: Color(0xFF7F8C8D),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: statusColor.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: statusColor.withOpacity(0.3),
+                  width: 1,
+                ),
+              ),
+              child: Text(
+                statusText,
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w500,
+                  color: statusColor,
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Icon(
+              Icons.chevron_right,
+              color: Colors.grey.shade400,
+              size: 20,
+            ),
+          ],
+        ),
+      ),
     );
   }
 } 

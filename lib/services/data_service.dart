@@ -712,41 +712,108 @@ class DataService {
   final List<Map<String, dynamic>> _recommendations = [
     {
       'type': 'meditation',
-      'title': '身心放松冥想',
-      'duration': '5分钟',
-      'image': 'assets/images/meditation/relaxation.jpg',
-      'audioId': 'meditation_3',
-    },
-    {
-      'type': 'breathing',
-      'title': '深度呼吸练习',
-      'duration': '3分钟',
-      'image': 'assets/images/meditation/breathing.jpg',
-      'audioId': 'meditation_1',
+      'title': '晨间唤醒冥想',
+      'duration': '2分00秒',  // 120.03秒
+      'image': 'assets/images/meditation/morning.jpg',
+      'audioPath': 'voice/meditation/home_mingxiang_1.mp3',
+      'description': '以温和的方式唤醒身心，开启充满活力的一天',
     },
     {
       'type': 'quote',
-      'title': '"愿你遍历山河，觉得人间值得。"',
-      'author': '治愈句子',
+      'title': '"内心的平静来自于接纳当下，而不是与之对抗。"',
+      'author': '静心语录',
     },
     {
       'type': 'meditation',
-      'title': '正念冥想',
-      'duration': '10分钟',
-      'image': 'assets/images/meditation/mindfulness.jpg',
-      'audioId': 'meditation_2',
+      'title': '专注力提升',
+      'duration': '1分58秒',  // 118.44秒
+      'image': 'assets/images/meditation/focus.jpg',
+      'audioPath': 'voice/meditation/home_mingxiang_2.mp3',
+      'description': '通过呼吸练习增强注意力和工作效率',
     },
     {
       'type': 'quote',
-      'title': '"每一个不曾起舞的日子，都是对生命的辜负。"',
-      'author': '尼采',
+      'title': '"每一次呼吸都是重新开始的机会。"',
+      'author': '冥想箴言',
     },
     {
-      'type': 'whitenoise',
-      'title': '雨声白噪音',
-      'duration': '90秒',
-      'image': 'assets/images/whitenoise/rain.jpg',
-      'audioId': 'whitenoise_1',
+      'type': 'meditation',
+      'title': '压力释放冥想',
+      'duration': '2分00秒',  // 120.03秒
+      'image': 'assets/images/meditation/stress.jpg',
+      'audioPath': 'voice/meditation/home_mingxiang_3.mp3',
+      'description': '缓解身心压力，找回内心的平静',
+    },
+    {
+      'type': 'quote',
+      'title': '"生命中的每个时刻都是练习正念的机会。"',
+      'author': '禅修智慧',
+    },
+    {
+      'type': 'meditation',
+      'title': '情绪平衡练习',
+      'duration': '1分58秒',  // 118.44秒
+      'image': 'assets/images/meditation/emotion.jpg',
+      'audioPath': 'voice/meditation/home_mingxiang_4.mp3',
+      'description': '学习觉察和调节情绪的冥想方法',
+    },
+    {
+      'type': 'quote',
+      'title': '"平静不是无为，而是内在的清明。"',
+      'author': '心灵笔记',
+    },
+    {
+      'type': 'meditation',
+      'title': '正念生活冥想',
+      'duration': '2分00秒',  // 120.03秒
+      'image': 'assets/images/meditation/mindful.jpg',
+      'audioPath': 'voice/meditation/home_mingxiang_5.mp3',
+      'description': '培养当下觉知，体验生活的美好',
+    },
+    {
+      'type': 'quote',
+      'title': '"静心不是逃避，而是更好地面对。"',
+      'author': '冥想感悟',
+    },
+    {
+      'type': 'meditation',
+      'title': '深度放松引导',
+      'duration': '1分34秒',  // 94.43秒
+      'image': 'assets/images/meditation/relax.jpg',
+      'audioPath': 'voice/meditation/mingxiang_1.mp3',
+      'description': '全身放松练习，缓解身体紧张',
+    },
+    {
+      'type': 'meditation',
+      'title': '安眠助眠冥想',
+      'duration': '2分00秒',  // 120.03秒
+      'image': 'assets/images/meditation/sleep.jpg',
+      'audioPath': 'voice/meditation/mingxiang_2.mp3',
+      'description': '舒缓的引导帮助你进入深度睡眠',
+    },
+    {
+      'type': 'meditation',
+      'title': '慈心关怀冥想',
+      'duration': '2分00秒',
+      'image': 'assets/images/meditation/compassion.jpg',
+      'audioPath': 'voice/meditation/mingxiang_3.mp3',
+      'description': '培养慈悲心和自我关怀的能力',
+    },
+    {
+      'type': 'meditation',
+      'title': '能量提升冥想',
+      'duration': '1分58秒',
+      'image': 'assets/images/meditation/energy.jpg',
+      'audioPath': 'voice/meditation/mingxiang_4.mp3',
+      'description': '提升身体能量和精神活力',
+    },
+    {
+      'type': 'meditation',
+      'title': '创造力激发',
+      'duration': '2分00秒',
+      'image': 'assets/images/meditation/creativity.jpg',
+      'audioPath': 'voice/meditation/mingxiang_5.mp3',
+      'description': '打开心灵空间，激发创意潜能',
     },
   ];
 
@@ -994,13 +1061,17 @@ class DataService {
 
   // 获取所有推荐内容（20条）
   List<Map<String, dynamic>> getAllRecommendations() {
-    return [
+    // 获取基础推荐列表
+    final baseRecommendations = List<Map<String, dynamic>>.from(_recommendations);
+    
+    // 添加更多推荐内容
+    final additionalRecommendations = [
       {
         'type': 'meditation',
         'title': '5分钟放松冥想',
-        'duration': '5分钟',
+        'duration': '2分00秒',  // 120.03秒
         'description': '快速缓解压力，找回内心平静',
-        'audioId': 'meditation_3',
+        'audioPath': 'voice/meditation/home_mingxiang_1.mp3',
       },
       {
         'type': 'quote',
@@ -1010,122 +1081,33 @@ class DataService {
       {
         'type': 'breathing',
         'title': '深度呼吸练习',
-        'duration': '3分钟',
+        'duration': '1分34秒',  // 94.43秒
         'description': '调节情绪，缓解焦虑',
-        'audioId': 'meditation_1',
+        'audioPath': 'voice/meditation/mingxiang_1.mp3',
       },
       {
         'type': 'meditation',
         'title': '正念冥想',
-        'duration': '10分钟',
+        'duration': '2分00秒',  // 120.03秒
         'description': '专注当下，培养觉察力',
-        'audioId': 'meditation_2',
+        'audioPath': 'voice/meditation/mingxiang_2.mp3',
       },
       {
         'type': 'whitenoise',
         'title': '雨声白噪音',
-        'duration': '30分钟',
+        'duration': '1分58秒',  // 118.44秒
         'description': '自然雨声，助眠放松',
-        'audioId': 'whitenoise_1',
+        'audioPath': 'voice/meditation/home_mingxiang_2.mp3',
       },
       {
         'type': 'quote',
         'title': '"每一个不曾起舞的日子，都是对生命的辜负。"',
         'author': '尼采',
       },
-      {
-        'type': 'music',
-        'title': '轻柔钢琴曲',
-        'duration': '15分钟',
-        'description': '舒缓心情的钢琴旋律',
-        'audioId': 'music_1',
-      },
-      {
-        'type': 'meditation',
-        'title': '身体扫描冥想',
-        'duration': '20分钟',
-        'description': '放松身体每一个部位',
-        'audioId': 'meditation_4',
-      },
-      {
-        'type': 'story',
-        'title': '森林里的小屋',
-        'duration': '12分钟',
-        'description': '温暖治愈的睡前故事',
-        'audioId': 'story_1',
-      },
-      {
-        'type': 'quote',
-        'title': '"你要做一个不动声色的大人了。"',
-        'author': '村上春树',
-      },
-      {
-        'type': 'whitenoise',
-        'title': '海浪声',
-        'duration': '45分钟',
-        'description': '海边的宁静，心灵的港湾',
-        'audioId': 'whitenoise_2',
-      },
-      {
-        'type': 'breathing',
-        'title': '4-7-8呼吸法',
-        'duration': '5分钟',
-        'description': '科学呼吸法，快速入眠',
-        'audioId': 'breathing_1',
-      },
-      {
-        'type': 'meditation',
-        'title': '慈心冥想',
-        'duration': '15分钟',
-        'description': '培养慈悲心，释放负面情绪',
-        'audioId': 'meditation_5',
-      },
-      {
-        'type': 'quote',
-        'title': '"生活不是等待暴风雨过去，而是学会在雨中起舞。"',
-        'author': '佚名',
-      },
-      {
-        'type': 'music',
-        'title': '自然音乐合集',
-        'duration': '25分钟',
-        'description': '鸟鸣、流水、风声的和谐交响',
-        'audioId': 'music_2',
-      },
-      {
-        'type': 'story',
-        'title': '星空下的对话',
-        'duration': '8分钟',
-        'description': '关于梦想与希望的温柔故事',
-        'audioId': 'story_2',
-      },
-      {
-        'type': 'whitenoise',
-        'title': '篝火声',
-        'duration': '60分钟',
-        'description': '温暖的篝火声，带来安全感',
-        'audioId': 'whitenoise_3',
-      },
-      {
-        'type': 'quote',
-        'title': '"山川是不卷收的文章，日月为你掌灯伴读。"',
-        'author': '简媜',
-      },
-      {
-        'type': 'meditation',
-        'title': '行走冥想',
-        'duration': '8分钟',
-        'description': '在行走中找到内心的宁静',
-        'audioId': 'meditation_6',
-      },
-      {
-        'type': 'breathing',
-        'title': '盒式呼吸法',
-        'duration': '6分钟',
-        'description': '军队训练的呼吸技巧，快速冷静',
-        'audioId': 'breathing_2',
-      },
     ];
+    
+    // 合并列表并返回
+    return [...baseRecommendations, ...additionalRecommendations];
   }
 
   // 获取情感助手消息

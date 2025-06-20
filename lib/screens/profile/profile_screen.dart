@@ -5,6 +5,8 @@ import '../../services/storage_service.dart';
 import '../../services/data_service.dart';
 import '../../models/user.dart';
 import '../../widgets/common/custom_card.dart';
+import '../../widgets/common/app_logo.dart';
+import '../../widgets/common/user_avatar.dart';
 import 'agreement_screen.dart';
 import 'about_screen.dart';
 import 'days_detail_screen.dart';
@@ -65,36 +67,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   // 用户头像和基本信息
                   Row(
                     children: [
-                      // 头像
-                      Container(
-                        width: 72,
-                        height: 72,
-                        decoration: const BoxDecoration(
-                          shape: BoxShape.circle,
-                        ),
-                        child: ClipOval(
-                          child: Image.asset(
-                            _currentUser.avatar,
-                            width: 72,
-                            height: 72,
-                            fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) {
-                              return Container(
-                                width: 72,
-                                height: 72,
-                                decoration: BoxDecoration(
-                                  color: AppColors.accent.withOpacity(0.2),
-                                  shape: BoxShape.circle,
-                                ),
-                                child: const Icon(
-                                  Icons.person,
-                                  color: AppColors.accent,
-                                  size: 36,
-                                ),
-                              );
-                            },
-                          ),
-                        ),
+                      // 用户头像
+                      UserAvatar(
+                        avatarPath: _currentUser.avatar,
+                        size: 80,
+                        backgroundColor: Colors.white,
                       ),
                       const SizedBox(width: 16),
                       
@@ -137,8 +114,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   ),
                                 ),
                               ],
-                                                         ),
-                             const SizedBox(height: 8),
+                            ),
+                            const SizedBox(height: 8),
                             if (_currentUser.mood.isNotEmpty)
                               Container(
                                 padding: const EdgeInsets.symmetric(

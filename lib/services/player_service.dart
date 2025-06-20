@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'audio_service.dart';
 import 'data_service.dart';
+import '../models/audio_item.dart';
 
 class PlayerService extends ChangeNotifier {
   static final PlayerService _instance = PlayerService._internal();
@@ -74,13 +75,47 @@ class PlayerService extends ChangeNotifier {
   Future<void> _playCurrentAudio() async {
     if (_currentTrack == null) return;
     
-    // 根据audioId获取AudioItem
-    final audioId = _currentTrack!['audioId'];
-    final audioItem = _dataService.getAudioById(audioId);
-    
-    if (audioItem != null) {
-      await _audioService.play(audioItem);
-      // 不在这里设置 _isPlaying，让监听器处理
+    try {
+      // 获取音频路径
+      String? audioPath;
+      if (_currentTrack!['audioPath'] != null) {
+        // 直接使用音频路径
+        audioPath = _currentTrack!['audioPath'];
+      } else if (_currentTrack!['audioId'] != null) {
+        // 通过ID获取AudioItem
+        final audioItem = _dataService.getAudioById(_currentTrack!['audioId']);
+        if (audioItem != null) {
+          audioPath = audioItem.audioPath;
+        }
+      }
+
+      if (audioPath != null) {
+        // 根据类型设置AudioType
+        AudioType audioType;
+        switch (_currentTrack!['type']) {
+          case 'meditation':
+            audioType = AudioType.meditation;
+            break;
+          case 'whitenoise':
+            audioType = AudioType.whiteNoise;
+            break;
+          default:
+            audioType = AudioType.meditation;
+        }
+
+        await _audioService.play(AudioItem(
+          id: 'temp_id',
+          title: _currentTrack!['title'] ?? '',
+          description: _currentTrack!['description'] ?? '',
+          coverImage: _currentTrack!['image'] ?? '',
+          audioPath: audioPath,
+          duration: 0,
+          type: audioType,
+          category: _currentTrack!['category'] ?? '',
+        ));
+      }
+    } catch (e) {
+      print('播放音频失败: $e');
     }
   }
 

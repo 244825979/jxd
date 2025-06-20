@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../constants/app_colors.dart';
 import '../../widgets/common/custom_card.dart';
+import '../../widgets/common/app_logo.dart';
 
 class AboutScreen extends StatelessWidget {
   const AboutScreen({super.key});
@@ -59,24 +60,8 @@ class AboutScreen extends StatelessWidget {
     return CustomCard(
       child: Column(
         children: [
-          // Logo区域 (可以替换为实际logo)
-          Container(
-            width: 100,
-            height: 100,
-            decoration: BoxDecoration(
-              color: AppColors.accent.withOpacity(0.2),
-              borderRadius: BorderRadius.circular(25),
-              border: Border.all(
-                color: AppColors.accent.withOpacity(0.3),
-                width: 2,
-              ),
-            ),
-            child: Icon(
-              Icons.spa,
-              size: 50,
-              color: AppColors.accent,
-            ),
-          ),
+          // App Logo
+          AppLogo.hero(),
           const SizedBox(height: 16),
 
           // App名称

@@ -100,16 +100,23 @@ class AudioService {
   // 播放音频
   Future<void> play(AudioItem audioItem) async {
     try {
-      if (_currentAudio?.id != audioItem.id) {
+      if (_currentAudio?.id != audioItem.id || _currentAudio?.audioPath != audioItem.audioPath) {
         await stop();
         _currentAudio = audioItem;
         _currentAudioController.add(_currentAudio);
-        await _audioPlayer.setSource(audioplayers.AssetSource(audioItem.audioPath));
+        
+        // 确保音频路径正确
+        final audioPath = audioItem.audioPath.endsWith('.mp3') 
+            ? audioItem.audioPath 
+            : '${audioItem.audioPath}.mp3';
+            
+        await _audioPlayer.setSource(audioplayers.AssetSource(audioPath));
       }
       
       await _audioPlayer.resume();
     } catch (e) {
       print('播放音频失败: $e');
+      rethrow; // 向上传递错误以便调用者处理
     }
   }
 
