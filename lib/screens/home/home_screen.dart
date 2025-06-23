@@ -12,6 +12,8 @@ import '../../models/mood_record.dart';
 import 'ai_chat_screen.dart';
 import 'recommendations_screen.dart';
 import '../mood/mood_records_screen.dart';
+import '../profile/recharge_center_screen.dart';
+import '../profile/account_management_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -498,6 +500,10 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             const SizedBox(height: 24),
 
+            // 快捷入口
+            _buildQuickAccess(),
+            const SizedBox(height: 24),
+
             // 今日情绪打卡
             CustomCard(
               child: Column(
@@ -799,6 +805,132 @@ class _HomeScreenState extends State<HomeScreen> {
           );
         }
       },
+    );
+  }
+
+  // 构建快捷入口
+  Widget _buildQuickAccess() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          AppStrings.quickAccess,
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w600,
+            color: AppColors.textPrimary,
+          ),
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            // 充值中心
+            Expanded(
+              child: CustomCard(
+                onTap: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => const RechargeCenterScreen(),
+                    ),
+                  );
+                },
+                child: Container(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    children: [
+                      Container(
+                        width: 48,
+                        height: 48,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF4CAF50).withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Icon(
+                          Icons.account_balance_wallet,
+                          color: Color(0xFF4CAF50),
+                          size: 24,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      const Text(
+                        AppStrings.rechargeCenter,
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                          color: AppColors.textPrimary,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 2),
+                      const Text(
+                        '余额充值',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: AppColors.textHint,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            
+            // 账户管理
+            Expanded(
+              child: CustomCard(
+                onTap: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => const AccountManagementScreen(),
+                    ),
+                  );
+                },
+                child: Container(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    children: [
+                      Container(
+                        width: 48,
+                        height: 48,
+                        decoration: BoxDecoration(
+                          color: AppColors.accent.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Icon(
+                          Icons.manage_accounts,
+                          color: AppColors.accent,
+                          size: 24,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      const Text(
+                        AppStrings.accountManagement,
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                          color: AppColors.textPrimary,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 2),
+                      const Text(
+                        '安全设置',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: AppColors.textHint,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
     );
   }
 }

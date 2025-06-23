@@ -56,6 +56,11 @@ class AppStrings {
   static const String settings = '设置';
   
   
+  // 充值中心和账户管理
+  static const String rechargeCenter = '充值中心';
+  static const String accountManagement = '账户管理';
+  static const String quickAccess = '快捷入口';
+  
   // 通用
   static const String loading = '加载中...';
   static const String error = '出错了';
