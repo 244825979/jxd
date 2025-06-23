@@ -10,7 +10,7 @@ class RechargeCenterScreen extends StatefulWidget {
 }
 
 class _RechargeCenterScreenState extends State<RechargeCenterScreen> {
-  double currentBalance = 0.0; // 当前余额
+  int currentCoins = 0; // 当前金币
   int selectedAmount = -1; // 选中的充值金额索引
   
   final List<Map<String, dynamic>> rechargeOptions = [
@@ -96,7 +96,7 @@ class _RechargeCenterScreenState extends State<RechargeCenterScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              '当前余额',
+              '当前金币',
               style: TextStyle(
                 color: Colors.white70,
                 fontSize: 14,
@@ -105,21 +105,26 @@ class _RechargeCenterScreenState extends State<RechargeCenterScreen> {
             const SizedBox(height: 8),
             Row(
               children: [
-                const Text(
-                  '¥',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 24,
-                    fontWeight: FontWeight.w600,
-                  ),
+                const Icon(
+                  Icons.monetization_on,
+                  color: Colors.amber,
+                  size: 28,
                 ),
-                const SizedBox(width: 4),
+                const SizedBox(width: 8),
                 Text(
-                  currentBalance.toStringAsFixed(2),
+                  currentCoins.toString(),
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 32,
                     fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                const Text(
+                  '个',
+                  style: TextStyle(
+                    color: Colors.white70,
+                    fontSize: 16,
                   ),
                 ),
               ],
@@ -347,13 +352,13 @@ class _RechargeCenterScreenState extends State<RechargeCenterScreen> {
   void _processRecharge(int amount, int bonus) {
     // 模拟充值成功
     setState(() {
-      currentBalance += amount + bonus;
+      currentCoins += amount + bonus;
       selectedAmount = -1;
     });
     
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('充值成功！到账金额：¥${amount + bonus}'),
+        content: Text('充值成功！到账金币：${amount + bonus}个'),
         backgroundColor: AppColors.accent,
       ),
     );
