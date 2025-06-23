@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../constants/app_colors.dart';
 import '../../widgets/common/custom_card.dart';
+import '../../services/apple_auth_service.dart';
+import 'account_management_screen.dart';
 
 class RechargeCenterScreen extends StatefulWidget {
   const RechargeCenterScreen({super.key});
@@ -12,15 +14,34 @@ class RechargeCenterScreen extends StatefulWidget {
 class _RechargeCenterScreenState extends State<RechargeCenterScreen> {
   int currentCoins = 0; // 当前金币
   int selectedAmount = -1; // 选中的充值金额索引
+  final AppleAuthService _authService = AppleAuthService();
+  bool _isLoggedIn = false;
   
   final List<Map<String, dynamic>> rechargeOptions = [
-    {'amount': 10, 'bonus': 0, 'popular': false},
-    {'amount': 30, 'bonus': 2, 'popular': false},
-    {'amount': 68, 'bonus': 8, 'popular': true},
-    {'amount': 128, 'bonus': 20, 'popular': false},
-    {'amount': 268, 'bonus': 50, 'popular': false},
-    {'amount': 588, 'bonus': 120, 'popular': false},
+    {'price': 12, 'coins': 840, 'product_id': 'lelele_12', 'popular': false},
+    {'price': 38, 'coins': 2660, 'product_id': 'lelele_38', 'popular': false},
+    {'price': 68, 'coins': 4760, 'product_id': 'lelele_68', 'popular': true},
+    {'price': 98, 'coins': 6860, 'product_id': 'lelele_98', 'popular': false},
+    {'price': 198, 'coins': 13860, 'product_id': 'lelele_198', 'popular': false},
+    {'price': 298, 'coins': 20860, 'product_id': 'lelele_298', 'popular': false},
+    {'price': 598, 'coins': 41860, 'product_id': 'lelele_598', 'popular': false},
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    _checkLoginStatus();
+  }
+
+  // 检查登录状态
+  Future<void> _checkLoginStatus() async {
+    final isLoggedIn = await _authService.isLoggedIn();
+    if (mounted) {
+      setState(() {
+        _isLoggedIn = isLoggedIn;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -65,7 +86,7 @@ class _RechargeCenterScreenState extends State<RechargeCenterScreen> {
             
             // 充值选项网格
             _buildRechargeOptions(),
-            const SizedBox(height: 32),
+            const SizedBox(height: 20),
             
             // 充值按钮
             _buildRechargeButton(),
@@ -147,9 +168,10 @@ class _RechargeCenterScreenState extends State<RechargeCenterScreen> {
     return GridView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
+      padding: EdgeInsets.zero,
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
-        childAspectRatio: 1.8,
+        childAspectRatio: 1.6,
         crossAxisSpacing: 12,
         mainAxisSpacing: 12,
       ),
@@ -157,7 +179,6 @@ class _RechargeCenterScreenState extends State<RechargeCenterScreen> {
       itemBuilder: (context, index) {
         final option = rechargeOptions[index];
         final isSelected = selectedAmount == index;
-        final isPopular = option['popular'] == true;
         
         return GestureDetector(
           onTap: () {
@@ -170,79 +191,60 @@ class _RechargeCenterScreenState extends State<RechargeCenterScreen> {
               color: AppColors.background,
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
-                color: isSelected ? AppColors.accent : AppColors.divider,
+                color: isSelected ? const Color(0xFF00695C) : AppColors.divider,
                 width: isSelected ? 2 : 1,
               ),
             ),
-            child: Stack(
-              children: [
-                // 热门标签
-                if (isPopular)
-                  Positioned(
-                    top: 0,
-                    right: 0,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: const BoxDecoration(
-                        color: Color(0xFFFF6B6B),
-                        borderRadius: BorderRadius.only(
-                          topRight: Radius.circular(12),
-                          bottomLeft: Radius.circular(8),
-                        ),
-                      ),
-                      child: const Text(
-                        '热门',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 10,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ),
-                
-                // 主要内容
-                Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  // 价格显示
+                  Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Text(
-                            '¥',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.textPrimary,
-                            ),
-                          ),
-                          Text(
-                            '${option['amount']}',
-                            style: const TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.w700,
-                              color: AppColors.textPrimary,
-                            ),
-                          ),
-                        ],
-                      ),
-                      if (option['bonus'] > 0) ...[
-                        const SizedBox(height: 4),
-                        Text(
-                          '赠送¥${option['bonus']}',
-                          style: const TextStyle(
-                            fontSize: 12,
-                            color: AppColors.accent,
-                            fontWeight: FontWeight.w500,
-                          ),
+                      const Text(
+                        '¥',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textPrimary,
                         ),
-                      ],
+                      ),
+                      Text(
+                        '${option['price']}',
+                        style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
                     ],
                   ),
-                ),
-              ],
+                  const SizedBox(height: 4),
+                  // 金币数量显示
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.monetization_on,
+                        color: Colors.amber,
+                        size: isSelected ? 16 : 14,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        '${option['coins']}个',
+                        style: TextStyle(
+                          fontSize: isSelected ? 14 : 13,
+                          color: isSelected ? const Color(0xFF00695C) : AppColors.accent,
+                          fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
           ),
         );
@@ -258,16 +260,18 @@ class _RechargeCenterScreenState extends State<RechargeCenterScreen> {
       child: ElevatedButton(
         onPressed: isEnabled ? _handleRecharge : null,
         style: ElevatedButton.styleFrom(
-          backgroundColor: isEnabled ? AppColors.accent : AppColors.textHint,
+          backgroundColor: isEnabled ? const Color(0xFF00695C) : AppColors.textHint,
           padding: const EdgeInsets.symmetric(vertical: 16),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),
         ),
         child: Text(
-          isEnabled 
-            ? '充值 ¥${rechargeOptions[selectedAmount]['amount']}'
-            : '请选择充值金额',
+          !_isLoggedIn
+            ? '请先进行登录'
+            : (isEnabled 
+                ? '充值 ¥${rechargeOptions[selectedAmount]['price']}'
+                : '请选择充值金额'),
           style: const TextStyle(
             color: Colors.white,
             fontSize: 16,
@@ -293,9 +297,7 @@ class _RechargeCenterScreenState extends State<RechargeCenterScreen> {
         const SizedBox(height: 12),
         const Text(
           '• 充值金额将实时到账\n'
-          '• 余额永久有效，无过期时间\n'
-          '• 支持微信支付、支付宝等多种支付方式\n'
-          '• 如有问题请联系客服',
+          '• 余额永久有效，无过期时间',
           style: TextStyle(
             fontSize: 14,
             color: AppColors.textSecondary,
@@ -309,9 +311,15 @@ class _RechargeCenterScreenState extends State<RechargeCenterScreen> {
   void _handleRecharge() {
     if (selectedAmount < 0) return;
     
+    // 检查登录状态
+    if (!_isLoggedIn) {
+      _showLoginRequiredDialog();
+      return;
+    }
+    
     final option = rechargeOptions[selectedAmount];
-    final amount = option['amount'];
-    final bonus = option['bonus'] ?? 0;
+    final price = option['price'];
+    final coins = option['coins'];
     
     // 这里应该调用支付接口
     showDialog(
@@ -323,7 +331,7 @@ class _RechargeCenterScreenState extends State<RechargeCenterScreen> {
           style: TextStyle(color: AppColors.textPrimary),
         ),
         content: Text(
-          '确认充值 ¥$amount${bonus > 0 ? '（赠送¥$bonus）' : ''}？',
+          '确认支付 ¥$price 购买 $coins 个金币？',
           style: const TextStyle(color: AppColors.textSecondary),
         ),
         actions: [
@@ -334,10 +342,10 @@ class _RechargeCenterScreenState extends State<RechargeCenterScreen> {
           ElevatedButton(
             onPressed: () {
               Navigator.pop(context);
-              _processRecharge(amount, bonus);
+              _processRecharge(price, coins);
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.accent,
+              backgroundColor: const Color(0xFF00695C),
             ),
             child: const Text(
               '确认',
@@ -349,17 +357,67 @@ class _RechargeCenterScreenState extends State<RechargeCenterScreen> {
     );
   }
 
-  void _processRecharge(int amount, int bonus) {
+  // 显示登录提示对话框
+  void _showLoginRequiredDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppColors.background,
+        title: const Text(
+          '需要登录',
+          style: TextStyle(color: AppColors.textPrimary),
+        ),
+        content: const Text(
+          '充值功能需要登录后才能使用，请先登录您的账户。',
+          style: TextStyle(color: AppColors.textSecondary),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('取消'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _goToLogin();
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF00695C),
+            ),
+            child: const Text(
+              '去登录',
+              style: TextStyle(color: Colors.white),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // 跳转到登录页面
+  void _goToLogin() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const AccountManagementScreen(),
+      ),
+    ).then((_) {
+      // 从登录页面返回后重新检查登录状态
+      _checkLoginStatus();
+    });
+  }
+
+  void _processRecharge(int price, int coins) {
     // 模拟充值成功
     setState(() {
-      currentCoins += amount + bonus;
+      currentCoins += coins;
       selectedAmount = -1;
     });
     
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('充值成功！到账金币：${amount + bonus}个'),
-        backgroundColor: AppColors.accent,
+        content: Text('充值成功！到账金币：${coins}个'),
+        backgroundColor: const Color(0xFF00695C),
       ),
     );
   }
