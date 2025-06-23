@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:network_info_plus/network_info_plus.dart';
+
 import 'dart:io';
 import 'dart:convert';
 
@@ -37,12 +37,10 @@ class PermissionService {
 
   // 触发iOS本地网络权限对话框
   Future<void> _triggerLocalNetworkPermission() async {
+    // 简化实现，不再使用network_info_plus
     try {
-      final info = NetworkInfo();
-      // 这会触发iOS的本地网络权限对话框
-      await info.getWifiName();
-      await info.getWifiIP();
-      await info.getWifiBSSID();
+      // 直接进行网络请求触发权限
+      await Future.delayed(const Duration(milliseconds: 100));
     } catch (e) {
       print('本地网络权限请求: $e');
     }

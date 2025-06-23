@@ -126,7 +126,7 @@ class _RechargeCenterScreenState extends State<RechargeCenterScreen> {
             ),
             const SizedBox(height: 8),
             const Text(
-              '余额可用于解锁高级功能和内容',
+              '每次与情感助手对话消耗1个金币',
               style: TextStyle(
                 color: Colors.white70,
                 fontSize: 12,
