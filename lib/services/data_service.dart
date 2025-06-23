@@ -1126,7 +1126,7 @@ class DataService {
   }
 
   // 当前用户数据
-  final User _currentUser = User(
+  User _currentUser = User(
     id: 'user_2024001',
     nickname: '温暖如风',
     avatar: 'assets/images/avatars/user_15.png',
@@ -1157,11 +1157,12 @@ class DataService {
     String? avatar,
     String? mood,
   }) {
-    return _currentUser.copyWith(
+    _currentUser = _currentUser.copyWith(
       nickname: nickname,
       avatar: avatar,
       mood: mood,
     );
+    return _currentUser;
   }
 
   // 获取用户数据

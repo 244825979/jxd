@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import '../../constants/app_colors.dart';
 import '../../widgets/common/custom_card.dart';
+import '../../services/apple_auth_service.dart';
+import '../../services/data_service.dart';
+import 'recharge_center_screen.dart';
 
 class AccountManagementScreen extends StatefulWidget {
   const AccountManagementScreen({super.key});
@@ -10,16 +14,96 @@ class AccountManagementScreen extends StatefulWidget {
 }
 
 class _AccountManagementScreenState extends State<AccountManagementScreen> {
-  // 模拟用户数据
+  final AppleAuthService _authService = AppleAuthService();
+  late final DataService _dataService;
+  
+  // 登录状态
+  bool _isLoggedIn = false;
+  bool _isLoading = true;
+  
+  // 用户数据
+  AppleUserInfo? _currentUser;
   Map<String, dynamic> userInfo = {
     'nickname': '心灵旅者',
-    'phone': '138****8888',
-    'email': 'user@example.com',
+    'appleId': 'user@privaterelay.appleid.com',
     'joinDate': '2024-01-01',
     'avatar': 'assets/images/avatars/user_1.png',
-    'vipLevel': '普通用户',
-    'balance': 58.88,
+    'isVip': false,
+    'vipExpireDate': null,
+    'coins': 1280,
+    'totalCoins': 5680,
   };
+
+  @override
+  void initState() {
+    super.initState();
+    _dataService = DataService.getInstance();
+    _checkLoginStatus();
+  }
+
+  // 检查登录状态
+  Future<void> _checkLoginStatus() async {
+    try {
+      final isLoggedIn = await _authService.isLoggedIn();
+      final currentUser = await _authService.getCurrentUser();
+      
+      // 获取个人中心的用户数据作为默认昵称
+      final profileUser = _dataService.getCurrentUser();
+      
+      if (mounted) {
+        setState(() {
+          _isLoggedIn = isLoggedIn;
+          _currentUser = currentUser;
+          _isLoading = false;
+          
+          // 更新用户信息
+          if (currentUser != null) {
+            final email = currentUser.email.isNotEmpty 
+              ? currentUser.email 
+              : '${currentUser.userId.substring(0, 8)}***@privaterelay.appleid.com';
+            
+            // 昵称优先级：Apple登录的昵称 > 个人中心昵称 > 默认昵称
+            String displayNickname;
+            if (currentUser.nickname != null && currentUser.nickname!.isNotEmpty) {
+              displayNickname = currentUser.nickname!;
+            } else {
+              displayNickname = profileUser.nickname;
+            }
+            
+            userInfo.addAll({
+              'nickname': displayNickname,
+              'appleId': email,
+              'joinDate': currentUser.loginTime.toString().split(' ')[0],
+              'userId': currentUser.userId,
+              'isVerified': currentUser.isVerified,
+            });
+          } else {
+            // 未登录时使用个人中心的昵称
+            userInfo['nickname'] = profileUser.nickname;
+          }
+        });
+      }
+      
+      // 检查凭证状态
+      if (isLoggedIn && currentUser != null) {
+        final isValid = await _authService.checkCredentialState();
+        if (!isValid && mounted) {
+          setState(() {
+            _isLoggedIn = false;
+            _currentUser = null;
+          });
+          _showErrorMessage('登录已过期，请重新登录');
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+        _showErrorMessage('检查登录状态失败: $e');
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -42,490 +126,1146 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
         ),
         centerTitle: true,
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // 用户信息卡片
-            _buildUserInfoCard(),
-            const SizedBox(height: 24),
-            
-            // 账户信息
-            _buildSectionTitle('账户信息'),
-            const SizedBox(height: 12),
-            _buildAccountInfoSection(),
-            const SizedBox(height: 24),
-            
-            // 安全设置
-            _buildSectionTitle('安全设置'),
-            const SizedBox(height: 12),
-            _buildSecuritySection(),
-            const SizedBox(height: 24),
-            
-            // 会员服务
-            _buildSectionTitle('会员服务'),
-            const SizedBox(height: 12),
-            _buildMembershipSection(),
-            const SizedBox(height: 24),
-            
-            // 其他操作
-            _buildSectionTitle('其他操作'),
-            const SizedBox(height: 12),
-            _buildOtherActionsSection(),
-          ],
-        ),
+      body: _isLoading 
+        ? _buildLoadingContent()
+        : (_isLoggedIn ? _buildLoggedInContent() : _buildLoginContent()),
+    );
+  }
+
+  // 加载状态界面
+  Widget _buildLoadingContent() {
+    return const Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          CircularProgressIndicator(color: AppColors.accent),
+          SizedBox(height: 16),
+          Text(
+            '正在检查登录状态...',
+            style: TextStyle(
+              color: AppColors.textSecondary,
+              fontSize: 14,
+            ),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildUserInfoCard() {
-    return CustomCard(
-      child: Container(
-        padding: const EdgeInsets.all(20),
-        child: Row(
-          children: [
-            // 头像
-            CircleAvatar(
-              radius: 30,
-              backgroundColor: AppColors.accent.withOpacity(0.2),
-              child: const Icon(
-                Icons.person,
-                size: 36,
-                color: AppColors.accent,
+  // 未登录界面
+  Widget _buildLoginContent() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          const SizedBox(height: 60),
+          
+          // 应用图标
+          Container(
+            width: 120,
+            height: 120,
+            decoration: BoxDecoration(
+              color: AppColors.accent.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(60),
+              border: Border.all(
+                color: AppColors.accent.withValues(alpha: 0.3),
+                width: 2,
               ),
             ),
-            const SizedBox(width: 16),
-            
-            // 用户信息
-            Expanded(
+            child: const Icon(
+              Icons.account_circle,
+              size: 80,
+              color: AppColors.accent,
+            ),
+          ),
+          const SizedBox(height: 32),
+          
+          // 欢迎文案
+          const Text(
+            '欢迎来到静心岛',
+            style: TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.w700,
+              color: AppColors.textPrimary,
+            ),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            '登录后享受更多个性化服务',
+            style: TextStyle(
+              fontSize: 16,
+              color: AppColors.textSecondary,
+            ),
+          ),
+          const SizedBox(height: 60),
+          
+          // 登录按钮卡片
+          CustomCard(
+            child: Padding(
+              padding: const EdgeInsets.all(24),
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    userInfo['nickname'],
-                    style: const TextStyle(
+                  const Text(
+                    '安全登录',
+                    style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w600,
                       color: AppColors.textPrimary,
                     ),
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    userInfo['vipLevel'],
-                    style: const TextStyle(
-                      fontSize: 14,
-                      color: AppColors.textSecondary,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: AppColors.accent.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Text(
-                      '余额：¥${userInfo['balance']}',
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: AppColors.accent,
-                        fontWeight: FontWeight.w500,
+                  const SizedBox(height: 20),
+                  
+                  // Apple登录按钮
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: _handleAppleLogin,
+                      icon: const Icon(
+                        Icons.apple,
+                        color: Colors.white,
+                        size: 24,
+                      ),
+                      label: const Text(
+                        '使用 Apple ID 登录',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.black,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
                       ),
                     ),
                   ),
+                  const SizedBox(height: 16),
+                  
+                  // 登录说明
+                  const Text(
+                    '我们使用Apple ID安全登录，保护您的隐私',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: AppColors.textHint,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
                 ],
               ),
             ),
-            
-            // 编辑按钮
-            IconButton(
-              onPressed: _editProfile,
-              icon: const Icon(
-                Icons.edit,
-                color: AppColors.textSecondary,
+          ),
+          const SizedBox(height: 40),
+          
+          // 服务条款
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Text(
+                '登录即表示同意',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: AppColors.textHint,
+                ),
               ),
+              GestureDetector(
+                onTap: () => _showServiceTerms(),
+                child: const Text(
+                  '《用户协议》',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: AppColors.accent,
+                    decoration: TextDecoration.underline,
+                  ),
+                ),
+              ),
+              const Text(
+                '和',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: AppColors.textHint,
+                ),
+              ),
+              GestureDetector(
+                onTap: () => _showPrivacyPolicy(),
+                child: const Text(
+                  '《隐私政策》',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: AppColors.accent,
+                    decoration: TextDecoration.underline,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  // 已登录界面
+  Widget _buildLoggedInContent() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        children: [
+          // 用户信息卡片
+          _buildUserInfoCard(),
+          const SizedBox(height: 16),
+          
+          // 快捷操作区域
+          _buildQuickActionsSection(),
+          const SizedBox(height: 16),
+          
+          // 账户管理
+          _buildAccountManagementSection(),
+          const SizedBox(height: 20),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildUserInfoCard() {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [
+            Color(0xFF667EEA), // 深紫蓝色
+            Color(0xFF764BA2), // 深紫色
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF667EEA).withValues(alpha: 0.3),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          // 头像和基本信息
+          Row(
+            children: [
+              Container(
+                width: 60,
+                height: 60,
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Colors.white, Color(0xFFF8F9FA)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(30),
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.3),
+                    width: 2,
+                  ),
+                ),
+                child: const Icon(
+                  Icons.person,
+                  size: 32,
+                  color: Color(0xFF667EEA),
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Flexible(
+                          child: Text(
+                            userInfo['nickname'] ?? '未设置',
+                            style: const TextStyle(
+                              fontSize: 22,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.white,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        if (userInfo['isVip']) ...[
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(
+                              gradient: const LinearGradient(
+                                colors: [Color(0xFFFFD700), Color(0xFFFFA500)],
+                              ),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: const Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.diamond, size: 12, color: Colors.white),
+                                SizedBox(width: 4),
+                                Text(
+                                  'VIP',
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        const Icon(Icons.monetization_on, size: 16, color: Colors.white),
+                        const SizedBox(width: 4),
+                        Text(
+                          '${userInfo['coins']} 金币',
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              IconButton(
+                onPressed: _editNickname,
+                icon: const Icon(
+                  Icons.edit_outlined,
+                  color: Colors.white,
+                  size: 22,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  // 快捷操作区域
+  Widget _buildQuickActionsSection() {
+    return Row(
+      children: [
+        // 充值按钮
+        Expanded(
+          child: _buildActionButton(
+            icon: Icons.add_circle_outline,
+            title: '充值',
+            subtitle: '购买金币',
+            color: const Color(0xFF10B981), // 翠绿色
+            onTap: _goToRecharge,
+          ),
+        ),
+        const SizedBox(width: 12),
+        // VIP升级按钮
+        Expanded(
+          child: _buildActionButton(
+            icon: userInfo['isVip'] ? Icons.diamond : Icons.upgrade,
+            title: userInfo['isVip'] ? 'VIP会员' : '升级VIP',
+            subtitle: userInfo['isVip'] ? '已开通' : '解锁特权',
+            color: userInfo['isVip'] ? const Color(0xFF8B5CF6) : const Color(0xFFF59E0B), // VIP紫色 / 金黄色
+            onTap: userInfo['isVip'] ? null : _upgradeToVip,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildActionButton({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required Color color,
+    VoidCallback? onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              color.withValues(alpha: 0.15),
+              color.withValues(alpha: 0.08),
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(
+            color: color.withValues(alpha: 0.25),
+            width: 1.5,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: color.withValues(alpha: 0.2),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildSectionTitle(String title) {
-    return Text(
-      title,
-      style: const TextStyle(
-        fontSize: 16,
-        fontWeight: FontWeight.w600,
-        color: AppColors.textPrimary,
-      ),
-    );
-  }
-
-  Widget _buildAccountInfoSection() {
-    return Column(
-      children: [
-        _buildInfoTile(
-          icon: Icons.person_outline,
-          title: '昵称',
-          value: userInfo['nickname'],
-          onTap: _editNickname,
-        ),
-        _buildInfoTile(
-          icon: Icons.phone_outlined,
-          title: '手机号',
-          value: userInfo['phone'],
-          onTap: _editPhone,
-        ),
-        _buildInfoTile(
-          icon: Icons.email_outlined,
-          title: '邮箱',
-          value: userInfo['email'],
-          onTap: _editEmail,
-        ),
-        _buildInfoTile(
-          icon: Icons.calendar_today_outlined,
-          title: '注册时间',
-          value: userInfo['joinDate'],
-          showArrow: false,
-        ),
-      ],
-    );
-  }
-
-  Widget _buildSecuritySection() {
-    return Column(
-      children: [
-        _buildInfoTile(
-          icon: Icons.lock_outline,
-          title: '修改密码',
-          value: '点击修改登录密码',
-          onTap: _changePassword,
-        ),
-        _buildInfoTile(
-          icon: Icons.fingerprint,
-          title: '生物识别',
-          value: '指纹/面容登录',
-          onTap: _biometricSettings,
-        ),
-        _buildInfoTile(
-          icon: Icons.security,
-          title: '账户安全',
-          value: '安全等级：高',
-          onTap: _securitySettings,
-        ),
-        _buildInfoTile(
-          icon: Icons.devices,
-          title: '设备管理',
-          value: '管理登录设备',
-          onTap: _deviceManagement,
-        ),
-      ],
-    );
-  }
-
-  Widget _buildMembershipSection() {
-    return Column(
-      children: [
-        _buildInfoTile(
-          icon: Icons.workspace_premium,
-          title: 'VIP 会员',
-          value: '升级至高级会员',
-          onTap: _upgradeVip,
-          valueColor: AppColors.accent,
-        ),
-        _buildInfoTile(
-          icon: Icons.card_giftcard,
-          title: '兑换码',
-          value: '输入兑换码',
-          onTap: _redeemCode,
-        ),
-        _buildInfoTile(
-          icon: Icons.history,
-          title: '消费记录',
-          value: '查看充值消费记录',
-          onTap: _viewTransactionHistory,
-        ),
-      ],
-    );
-  }
-
-  Widget _buildOtherActionsSection() {
-    return Column(
-      children: [
-        _buildInfoTile(
-          icon: Icons.download,
-          title: '数据导出',
-          value: '导出个人数据',
-          onTap: _exportData,
-        ),
-        _buildInfoTile(
-          icon: Icons.logout,
-          title: '退出登录',
-          value: '退出当前账户',
-          onTap: _logout,
-          valueColor: const Color(0xFFFF6B6B),
-        ),
-        _buildInfoTile(
-          icon: Icons.delete_forever,
-          title: '注销账户',
-          value: '永久删除账户',
-          onTap: _deleteAccount,
-          valueColor: const Color(0xFFFF6B6B),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildInfoTile({
-    required IconData icon,
-    required String title,
-    required String value,
-    VoidCallback? onTap,
-    Color? valueColor,
-    bool showArrow = true,
-  }) {
-    return CustomCard(
-      onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Row(
+        child: Column(
           children: [
             Icon(
               icon,
-              color: AppColors.textSecondary,
-              size: 20,
+              size: 32,
+              color: color,
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
-                      color: AppColors.textPrimary,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    value,
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: valueColor ?? AppColors.textSecondary,
-                    ),
-                  ),
-                ],
+            const SizedBox(height: 10),
+            Text(
+              title,
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w700,
+                color: color,
               ),
             ),
-            if (showArrow && onTap != null)
-              const Icon(
-                Icons.arrow_forward_ios,
-                size: 14,
-                color: AppColors.textHint,
+            const SizedBox(height: 4),
+            Text(
+              subtitle,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+                color: color.withValues(alpha: 0.75),
               ),
+            ),
           ],
         ),
       ),
     );
   }
 
-  // 各种操作方法
-  void _editProfile() {
-    _showComingSoonDialog('编辑资料');
-  }
-
-  void _editNickname() {
-    _showEditDialog('昵称', userInfo['nickname'], (value) {
-      setState(() {
-        userInfo['nickname'] = value;
-      });
-    });
-  }
-
-  void _editPhone() {
-    _showComingSoonDialog('修改手机号');
-  }
-
-  void _editEmail() {
-    _showComingSoonDialog('修改邮箱');
-  }
-
-  void _changePassword() {
-    _showComingSoonDialog('修改密码');
-  }
-
-  void _biometricSettings() {
-    _showComingSoonDialog('生物识别设置');
-  }
-
-  void _securitySettings() {
-    _showComingSoonDialog('安全设置');
-  }
-
-  void _deviceManagement() {
-    _showComingSoonDialog('设备管理');
-  }
-
-  void _upgradeVip() {
-    _showComingSoonDialog('升级VIP');
-  }
-
-  void _redeemCode() {
-    _showComingSoonDialog('兑换码');
-  }
-
-  void _viewTransactionHistory() {
-    _showComingSoonDialog('消费记录');
-  }
-
-  void _exportData() {
-    _showComingSoonDialog('数据导出');
-  }
-
-  void _logout() {
-    _showConfirmDialog(
-      '退出登录',
-      '确定要退出当前账户吗？',
-      () {
-        Navigator.of(context).popUntil((route) => route.isFirst);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('已退出登录'),
-            backgroundColor: AppColors.accent,
+  // 账户管理区域
+  Widget _buildAccountManagementSection() {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: AppColors.cardBackground,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: AppColors.divider.withValues(alpha: 0.5),
+          width: 1,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            '账户设置',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: AppColors.textPrimary,
+            ),
           ),
+          const SizedBox(height: 16),
+          // Apple ID 信息
+          Row(
+            children: [
+              const Icon(
+                Icons.apple,
+                size: 20,
+                color: AppColors.textSecondary,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  userInfo['appleId'] ?? '未设置',
+                  style: const TextStyle(
+                    fontSize: 14,
+                    color: AppColors.textSecondary,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          // 操作按钮
+          Column(
+            children: [
+              SizedBox(
+                width: double.infinity,
+                child: _buildSimpleButton(
+                  title: '退出登录',
+                  icon: Icons.logout,
+                  color: const Color(0xFF6B7280), // 温和的灰蓝色
+                  onTap: _logout,
+                ),
+              ),
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: _buildSimpleButton(
+                  title: '注销账户',
+                  icon: Icons.delete_outline,
+                  color: const Color(0xFFEF4444), // 温和的红色
+                  onTap: _deleteAccount,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSimpleButton({
+    required String title,
+    required IconData icon,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: color.withValues(alpha: 0.2),
+            width: 1,
+          ),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              icon,
+              size: 20,
+              color: color,
+            ),
+            const SizedBox(width: 12),
+            Text(
+              title,
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+                color: color,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+
+
+  // === 事件处理方法 ===
+
+  // Apple登录处理
+  Future<void> _handleAppleLogin() async {
+    // 检查Apple登录是否可用
+    final isAvailable = await _authService.isAppleSignInAvailable();
+    if (!isAvailable) {
+      _showErrorMessage('Apple登录在此设备上不可用');
+      return;
+    }
+
+    // 显示加载提示
+    _showLoadingDialog('正在登录...');
+
+    try {
+      // 执行Apple登录
+      final result = await _authService.signInWithApple();
+      
+      // 关闭加载对话框
+      _safeCloseLoadingDialog();
+      
+      if (mounted) {
+        switch (result.result) {
+          case AppleSignInResult.success:
+            if (result.userInfo != null) {
+              setState(() {
+                _isLoggedIn = true;
+                _currentUser = result.userInfo;
+                
+                // 更新用户信息
+                final email = result.userInfo!.email.isNotEmpty 
+                  ? result.userInfo!.email 
+                  : '${result.userInfo!.userId.substring(0, 8)}***@privaterelay.appleid.com';
+                
+                // 获取个人中心的当前昵称
+                final profileUser = _dataService.getCurrentUser();
+                
+                // 昵称优先级：Apple登录的昵称 > 个人中心昵称
+                String finalNickname;
+                if (result.userInfo!.nickname != null && result.userInfo!.nickname!.isNotEmpty) {
+                  finalNickname = result.userInfo!.nickname!;
+                } else if (result.userInfo!.displayName.isNotEmpty && result.userInfo!.displayName != '心灵旅者${result.userInfo!.userId.substring(0, 8)}') {
+                  finalNickname = result.userInfo!.displayName;
+                } else {
+                  finalNickname = profileUser.nickname;
+                }
+                
+                // 同步昵称到个人中心
+                _dataService.updateUser(nickname: finalNickname);
+                
+                userInfo.addAll({
+                  'nickname': finalNickname,
+                  'appleId': email,
+                  'joinDate': result.userInfo!.loginTime.toString().split(' ')[0],
+                  'userId': result.userInfo!.userId,
+                  'isVerified': result.userInfo!.isVerified,
+                });
+                
+                if (kDebugMode) {
+                  print('更新用户信息: nickname=$finalNickname, appleId=$email');
+                }
+              });
+              
+              _showSuccessMessage('登录成功，欢迎使用静心岛！');
+            }
+            break;
+            
+          case AppleSignInResult.cancelled:
+            // 用户取消登录，不显示错误信息
+            break;
+            
+          case AppleSignInResult.failed:
+            _showErrorMessage(result.error ?? '登录失败，请重试');
+            break;
+            
+          case AppleSignInResult.unavailable:
+            _showErrorMessage('Apple登录不可用');
+            break;
+        }
+      }
+    } catch (e) {
+      // 关闭加载对话框
+      _safeCloseLoadingDialog();
+      
+      if (mounted) {
+        _showErrorMessage('登录过程中发生错误: $e');
+      }
+    }
+  }
+
+  // 编辑昵称
+  void _editNickname() {
+    showDialog(
+      context: context,
+      builder: (context) {
+        final controller = TextEditingController(text: userInfo['nickname']);
+        return AlertDialog(
+          backgroundColor: AppColors.cardBackground,
+          title: const Text(
+            '修改昵称',
+            style: TextStyle(color: AppColors.textPrimary),
+          ),
+          content: TextField(
+            controller: controller,
+            style: const TextStyle(color: AppColors.textPrimary),
+            decoration: const InputDecoration(
+              hintText: '请输入新昵称（最多8个字符）',
+              hintStyle: TextStyle(color: AppColors.textHint),
+              border: OutlineInputBorder(),
+              enabledBorder: OutlineInputBorder(
+                borderSide: BorderSide(color: AppColors.divider),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderSide: BorderSide(color: AppColors.accent),
+              ),
+              helperText: '昵称长度限制为8个字符',
+              helperStyle: TextStyle(color: AppColors.textHint, fontSize: 12),
+            ),
+            maxLength: 8,
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('取消', style: TextStyle(color: AppColors.textSecondary)),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                final newNickname = controller.text.trim();
+                if (newNickname.isEmpty) {
+                  _showErrorMessage('昵称不能为空');
+                  return;
+                }
+                if (newNickname.length > 8) {
+                  _showErrorMessage('昵称长度不能超过8个字符');
+                  return;
+                }
+                Navigator.pop(context);
+                _showLoadingDialog('正在保存昵称...');
+                
+                try {
+                  final success = await _authService.updateUserNickname(newNickname);
+                  
+                  // 关闭加载对话框
+                  _safeCloseLoadingDialog();
+                  
+                  if (mounted) {
+                    if (success) {
+                      // 同步昵称到个人中心
+                      _dataService.updateUser(nickname: newNickname);
+                      
+                      setState(() {
+                        userInfo['nickname'] = newNickname;
+                        if (_currentUser != null) {
+                          // 更新当前用户信息
+                          _currentUser = AppleUserInfo(
+                            userId: _currentUser!.userId,
+                            email: _currentUser!.email,
+                            givenName: _currentUser!.givenName,
+                            familyName: _currentUser!.familyName,
+                            nickname: newNickname,
+                            isVerified: _currentUser!.isVerified,
+                            loginTime: _currentUser!.loginTime,
+                          );
+                        }
+                      });
+                      _showSuccessMessage('昵称修改成功');
+                    } else {
+                      _showErrorMessage('昵称修改失败，请重试');
+                    }
+                  }
+                } catch (e) {
+                  _safeCloseLoadingDialog();
+                  if (mounted) {
+                    _showErrorMessage('昵称修改失败: $e');
+                  }
+                }
+              },
+              style: ElevatedButton.styleFrom(backgroundColor: AppColors.accent),
+              child: const Text('确定', style: TextStyle(color: Colors.white)),
+            ),
+          ],
         );
       },
     );
   }
 
+
+
+  // 去充值
+  void _goToRecharge() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const RechargeCenterScreen(),
+      ),
+    );
+  }
+
+  // 升级VIP
+  void _upgradeToVip() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppColors.cardBackground,
+        title: const Text(
+          'VIP会员',
+          style: TextStyle(color: AppColors.textPrimary),
+        ),
+        content: const Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'VIP特权：',
+              style: TextStyle(
+                color: AppColors.textPrimary,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            SizedBox(height: 8),
+            Text(
+              '• 无限制使用所有冥想音频\n• 优先体验新功能\n• 专属VIP客服\n• 更多个性化推荐\n• 去除广告干扰',
+              style: TextStyle(
+                color: AppColors.textSecondary,
+                fontSize: 13,
+              ),
+            ),
+            SizedBox(height: 16),
+            Text(
+              '价格：￥68/月 或 ￥588/年',
+              style: TextStyle(
+                color: Color(0xFFFFD700),
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('取消', style: TextStyle(color: AppColors.textSecondary)),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              // 跳转到充值页面
+              _goToRecharge();
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFFFD700)),
+            child: const Text('立即升级', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
+
+
+  // 退出登录
+  void _logout() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppColors.cardBackground,
+        title: const Text(
+          '退出登录',
+          style: TextStyle(color: AppColors.textPrimary),
+        ),
+        content: const Text(
+          '确定要退出当前账户吗？',
+          style: TextStyle(color: AppColors.textSecondary),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('取消', style: TextStyle(color: AppColors.textSecondary)),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              _showLoadingDialog('正在退出...');
+              
+              try {
+                await _authService.signOut();
+                
+                // 关闭加载对话框
+                _safeCloseLoadingDialog();
+                
+                if (mounted) {
+                  setState(() {
+                    _isLoggedIn = false;
+                    _currentUser = null;
+                    // 重置用户信息
+                    userInfo = {
+                      'nickname': '心灵旅者',
+                      'appleId': 'user@privaterelay.appleid.com',
+                      'joinDate': '2024-01-01',
+                      'avatar': 'assets/images/avatars/user_1.png',
+                      'isVip': false,
+                      'vipExpireDate': null,
+                      'coins': 1280,
+                      'totalCoins': 5680,
+                    };
+                  });
+                  _showSuccessMessage('已退出登录');
+                }
+              } catch (e) {
+                _safeCloseLoadingDialog();
+                if (mounted) {
+                  _showErrorMessage('退出登录失败: $e');
+                }
+              }
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.accent),
+            child: const Text('确定', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // 注销账户
   void _deleteAccount() {
-    _showConfirmDialog(
-      '注销账户',
-      '注销账户将永久删除所有数据，此操作不可恢复。确定要继续吗？',
-      () {
-        _showComingSoonDialog('账户注销');
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppColors.cardBackground,
+        title: const Text(
+          '注销账户',
+          style: TextStyle(color: AppColors.error),
+        ),
+        content: const Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              '注意：此操作不可恢复！',
+              style: TextStyle(
+                color: AppColors.error,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            SizedBox(height: 8),
+            Text(
+              '注销账户将会：\n• 永久删除您的所有数据\n• 清除所有个人信息\n• 无法恢复任何内容',
+              style: TextStyle(
+                color: AppColors.textSecondary,
+                fontSize: 13,
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('取消', style: TextStyle(color: AppColors.textSecondary)),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _confirmDeleteAccount();
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
+            child: const Text('确认注销', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // 确认注销账户
+  void _confirmDeleteAccount() {
+    showDialog(
+      context: context,
+      builder: (context) {
+        final controller = TextEditingController();
+        return AlertDialog(
+          backgroundColor: AppColors.cardBackground,
+          title: const Text(
+            '最后确认',
+            style: TextStyle(color: AppColors.error),
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                '请输入 "确认注销" 来确认此操作：',
+                style: TextStyle(color: AppColors.textPrimary),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: controller,
+                style: const TextStyle(color: AppColors.textPrimary),
+                decoration: const InputDecoration(
+                  hintText: '请输入：确认注销',
+                  hintStyle: TextStyle(color: AppColors.textHint),
+                  border: OutlineInputBorder(),
+                  enabledBorder: OutlineInputBorder(
+                    borderSide: BorderSide(color: AppColors.divider),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderSide: BorderSide(color: AppColors.error),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('取消', style: TextStyle(color: AppColors.textSecondary)),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                if (controller.text.trim() == '确认注销') {
+                  Navigator.pop(context);
+                  _showLoadingDialog('正在注销账户...');
+                  
+                  try {
+                    await _authService.deleteAccount();
+                    
+                    // 关闭加载对话框
+                    _safeCloseLoadingDialog();
+                    
+                    if (mounted) {
+                      setState(() {
+                        _isLoggedIn = false;
+                        _currentUser = null;
+                        // 重置用户信息
+                        userInfo = {
+                          'nickname': '心灵旅者',
+                          'appleId': 'user@privaterelay.appleid.com',
+                          'joinDate': '2024-01-01',
+                          'avatar': 'assets/images/avatars/user_1.png',
+                          'isVip': false,
+                          'vipExpireDate': null,
+                          'coins': 1280,
+                          'totalCoins': 5680,
+                        };
+                      });
+                      _showSuccessMessage('账户已注销');
+                    }
+                  } catch (e) {
+                    _safeCloseLoadingDialog();
+                    if (mounted) {
+                      _showErrorMessage('注销账户失败: $e');
+                    }
+                  }
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('输入不正确，请重新输入'),
+                      backgroundColor: AppColors.error,
+                    ),
+                  );
+                }
+              },
+              style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
+              child: const Text('确认注销', style: TextStyle(color: Colors.white)),
+            ),
+          ],
+        );
       },
     );
   }
 
-  void _showEditDialog(String title, String currentValue, Function(String) onSave) {
-    final controller = TextEditingController(text: currentValue);
-    
+  // 显示服务条款
+  void _showServiceTerms() {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: AppColors.background,
-        title: Text(
-          '修改$title',
-          style: const TextStyle(color: AppColors.textPrimary),
-        ),
-        content: TextField(
-          controller: controller,
-          style: const TextStyle(color: AppColors.textPrimary),
-          decoration: InputDecoration(
-            hintText: '请输入$title',
-            hintStyle: const TextStyle(color: AppColors.textHint),
-            border: const OutlineInputBorder(),
-            focusedBorder: const OutlineInputBorder(
-              borderSide: BorderSide(color: AppColors.accent),
-            ),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('取消'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              onSave(controller.text);
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('$title修改成功'),
-                  backgroundColor: AppColors.accent,
-                ),
-              );
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.accent,
-            ),
-            child: const Text(
-              '保存',
-              style: TextStyle(color: Colors.white),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showConfirmDialog(String title, String content, VoidCallback onConfirm) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: AppColors.background,
-        title: Text(
-          title,
-          style: const TextStyle(color: AppColors.textPrimary),
-        ),
-        content: Text(
-          content,
-          style: const TextStyle(color: AppColors.textSecondary),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('取消'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              onConfirm();
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFFF6B6B),
-            ),
-            child: const Text(
-              '确认',
-              style: TextStyle(color: Colors.white),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showComingSoonDialog(String feature) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: AppColors.background,
+        backgroundColor: AppColors.cardBackground,
         title: const Text(
-          '功能开发中',
+          '用户协议',
           style: TextStyle(color: AppColors.textPrimary),
         ),
-        content: Text(
-          '$feature功能正在开发中，敬请期待！',
-          style: const TextStyle(color: AppColors.textSecondary),
+        content: const SizedBox(
+          width: 300,
+          height: 300,
+          child: SingleChildScrollView(
+            child: Text(
+              '这里是用户协议的内容...\n\n1. 服务条款\n2. 用户权责\n3. 隐私保护\n4. 免责声明\n\n详细条款请查看完整版协议。',
+              style: TextStyle(
+                color: AppColors.textSecondary,
+                fontSize: 13,
+              ),
+            ),
+          ),
         ),
         actions: [
           ElevatedButton(
             onPressed: () => Navigator.pop(context),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.accent,
-            ),
-            child: const Text(
-              '知道了',
-              style: TextStyle(color: Colors.white),
-            ),
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.accent),
+            child: const Text('确定', style: TextStyle(color: Colors.white)),
           ),
         ],
       ),
     );
   }
-} 
+
+  // 显示隐私政策
+  void _showPrivacyPolicy() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppColors.cardBackground,
+        title: const Text(
+          '隐私政策',
+          style: TextStyle(color: AppColors.textPrimary),
+        ),
+        content: const SizedBox(
+          width: 300,
+          height: 300,
+          child: SingleChildScrollView(
+            child: Text(
+              '这里是隐私政策的内容...\n\n1. 信息收集\n2. 信息使用\n3. 信息保护\n4. 第三方服务\n\n我们承诺保护您的隐私安全。',
+              style: TextStyle(
+                color: AppColors.textSecondary,
+                fontSize: 13,
+              ),
+            ),
+          ),
+        ),
+        actions: [
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context),
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.accent),
+            child: const Text('确定', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // 显示加载对话框
+  void _showLoadingDialog(String message) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      useRootNavigator: true,
+      builder: (context) => PopScope(
+        canPop: false,
+        child: AlertDialog(
+          backgroundColor: AppColors.cardBackground,
+          content: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const CircularProgressIndicator(color: AppColors.accent),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Text(
+                  message,
+                  style: const TextStyle(color: AppColors.textPrimary),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // 安全关闭加载对话框
+  void _safeCloseLoadingDialog() {
+    try {
+      if (mounted && Navigator.canPop(context)) {
+        Navigator.of(context, rootNavigator: true).pop();
+      }
+    } catch (e) {
+      // 忽略关闭对话框时的错误
+      if (kDebugMode) {
+        print('关闭加载对话框失败: $e');
+      }
+    }
+  }
+
+  // 显示成功消息
+  void _showSuccessMessage(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: AppColors.accent,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
+  // 显示错误消息
+  void _showErrorMessage(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: AppColors.error,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
+
+}

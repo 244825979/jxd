@@ -17,6 +17,8 @@ import 'my_blocked_posts_screen.dart';
 import 'my_posts_screen.dart';
 import 'my_feedbacks_screen.dart';
 import 'settings_screen.dart';
+import 'recharge_center_screen.dart';
+import 'account_management_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -256,7 +258,52 @@ class _ProfileScreenState extends State<ProfileScreen> {
             // 功能菜单区域
             Column(
               children: [
-                // 第一行：我的设置、我的举报
+                // 第一行：充值中心、账户管理
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildFunctionCard(
+                        '充值中心',
+                        '余额充值管理',
+                        Icons.account_balance_wallet_outlined,
+                        const Color(0xFF4CAF50),
+                        () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const RechargeCenterScreen(),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _buildFunctionCard(
+                        '账户管理',
+                        '安全设置中心',
+                        Icons.manage_accounts_outlined,
+                        const Color(0xFF2196F3),
+                        () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const AccountManagementScreen(),
+                            ),
+                          ).then((_) {
+                            // 从账户管理页面返回时刷新用户数据
+                            setState(() {
+                              _currentUser = _dataService.getCurrentUser();
+                            });
+                          });
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                
+                // 第二行：我的设置、我的举报
                 Row(
                   children: [
                     Expanded(
@@ -296,7 +343,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
                 const SizedBox(height: 12),
                 
-                // 第二行：我的屏蔽、意见反馈
+                // 第三行：我的屏蔽、意见反馈
                 Row(
                   children: [
                     Expanded(
@@ -336,7 +383,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
                 const SizedBox(height: 12),
                 
-                // 第三行：我的协议、关于我们
+                // 第四行：我的协议、关于我们
                 Row(
                   children: [
                     Expanded(
