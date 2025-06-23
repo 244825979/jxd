@@ -19,6 +19,7 @@ import 'my_feedbacks_screen.dart';
 import 'settings_screen.dart';
 import 'recharge_center_screen.dart';
 import 'account_management_screen.dart';
+import 'vip_subscription_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -70,10 +71,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   Row(
                     children: [
                       // 用户头像
-                      UserAvatar(
-                        avatarPath: _currentUser.avatar,
-                        size: 80,
-                        backgroundColor: Colors.white,
+                      GestureDetector(
+                        onLongPress: () {
+                          // 长按头像切换VIP状态（用于测试）
+                          _dataService.setVipStatus(!_currentUser.isVip);
+                          setState(() {
+                            _currentUser = _dataService.getCurrentUser();
+                          });
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(_currentUser.isVip ? 'VIP已开通' : 'VIP已关闭'),
+                              duration: const Duration(seconds: 1),
+                            ),
+                          );
+                        },
+                        child: UserAvatar(
+                          avatarPath: _currentUser.avatar,
+                          size: 80,
+                          backgroundColor: Colors.white,
+                        ),
                       ),
                       const SizedBox(width: 16),
                       
@@ -93,25 +109,60 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   ),
                                 ),
                                 const SizedBox(width: 8),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 8,
-                                    vertical: 2,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: AppColors.accent.withOpacity(0.1),
-                                    borderRadius: BorderRadius.circular(12),
-                                    border: Border.all(
-                                      color: AppColors.accent.withOpacity(0.3),
-                                      width: 1,
+                                GestureDetector(
+                                  onTap: () {
+                                    // 点击VIP按钮跳转到VIP开通页面
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) => const VipSubscriptionScreen(),
+                                      ),
+                                    ).then((_) {
+                                      // 从VIP页面返回后刷新用户数据
+                                      setState(() {
+                                        _currentUser = _dataService.getCurrentUser();
+                                      });
+                                    });
+                                  },
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                      vertical: 2,
                                     ),
-                                  ),
-                                  child: Text(
-                                    _currentUser.userLevel,
-                                    style: TextStyle(
-                                      fontSize: 10,
-                                      color: AppColors.accent,
-                                      fontWeight: FontWeight.w500,
+                                    decoration: BoxDecoration(
+                                      color: _currentUser.isVip 
+                                        ? const Color(0xFFFFD700).withOpacity(0.2)
+                                        : AppColors.textHint.withOpacity(0.1),
+                                      borderRadius: BorderRadius.circular(12),
+                                      border: Border.all(
+                                        color: _currentUser.isVip 
+                                          ? const Color(0xFFFFD700)
+                                          : AppColors.textHint,
+                                        width: 1,
+                                      ),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(
+                                          Icons.diamond,
+                                          size: 12,
+                                          color: _currentUser.isVip 
+                                            ? const Color(0xFFFFD700)
+                                            : AppColors.textHint,
+                                        ),
+                                        const SizedBox(width: 2),
+                                        Text(
+                                          _currentUser.userLevel,
+                                          style: TextStyle(
+                                            fontSize: 10,
+                                            color: _currentUser.isVip 
+                                              ? const Color(0xFFFFD700)
+                                              : AppColors.textHint,
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                        ),
+                                      ],
                                     ),
                                   ),
                                 ),

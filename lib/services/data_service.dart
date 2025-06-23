@@ -1135,6 +1135,7 @@ class DataService {
     postCount: 0,
     joinDate: DateTime.now().subtract(const Duration(days: 1)),
     mood: '今天心情不错',
+    isVip: false, // 默认未开通VIP
   );
 
   // 获取当前用户信息
@@ -1156,13 +1157,20 @@ class DataService {
     String? nickname,
     String? avatar,
     String? mood,
+    bool? isVip,
   }) {
     _currentUser = _currentUser.copyWith(
       nickname: nickname,
       avatar: avatar,
       mood: mood,
+      isVip: isVip,
     );
     return _currentUser;
+  }
+
+  // 切换VIP状态
+  void setVipStatus(bool isVip) {
+    _currentUser = _currentUser.copyWith(isVip: isVip);
   }
 
   // 获取用户数据

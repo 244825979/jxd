@@ -5,6 +5,7 @@ import '../../widgets/common/custom_card.dart';
 import '../../services/apple_auth_service.dart';
 import '../../services/data_service.dart';
 import 'recharge_center_screen.dart';
+import 'vip_subscription_screen.dart';
 
 class AccountManagementScreen extends StatefulWidget {
   const AccountManagementScreen({super.key});
@@ -1003,59 +1004,10 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
 
   // 升级VIP
   void _upgradeToVip() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: AppColors.cardBackground,
-        title: const Text(
-          'VIP会员',
-          style: TextStyle(color: AppColors.textPrimary),
-        ),
-        content: const Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'VIP特权：',
-              style: TextStyle(
-                color: AppColors.textPrimary,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            SizedBox(height: 8),
-            Text(
-              '• 无限制使用所有冥想音频\n• 优先体验新功能\n• 专属VIP客服\n• 更多个性化推荐\n• 去除广告干扰',
-              style: TextStyle(
-                color: AppColors.textSecondary,
-                fontSize: 13,
-              ),
-            ),
-            SizedBox(height: 16),
-            Text(
-              '价格：￥68/月 或 ￥588/年',
-              style: TextStyle(
-                color: Color(0xFFFFD700),
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('取消', style: TextStyle(color: AppColors.textSecondary)),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              // 跳转到充值页面
-              _goToRecharge();
-            },
-            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFFFD700)),
-            child: const Text('立即升级', style: TextStyle(color: Colors.white)),
-          ),
-        ],
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const VipSubscriptionScreen(),
       ),
     );
   }

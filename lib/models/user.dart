@@ -7,6 +7,7 @@ class User {
   final int postCount;
   final DateTime joinDate;
   final String mood;
+  final bool isVip;
 
   User({
     required this.id,
@@ -17,6 +18,7 @@ class User {
     required this.postCount,
     required this.joinDate,
     required this.mood,
+    this.isVip = false,
   });
 
   factory User.fromJson(Map<String, dynamic> json) {
@@ -29,6 +31,7 @@ class User {
       postCount: json['postCount'] ?? 0,
       joinDate: DateTime.parse(json['joinDate'] ?? DateTime.now().toIso8601String()),
       mood: json['mood'] ?? '',
+      isVip: json['isVip'] ?? false,
     );
   }
 
@@ -42,6 +45,7 @@ class User {
       'postCount': postCount,
       'joinDate': joinDate.toIso8601String(),
       'mood': mood,
+      'isVip': isVip,
     };
   }
 
@@ -54,6 +58,7 @@ class User {
     int? postCount,
     DateTime? joinDate,
     String? mood,
+    bool? isVip,
   }) {
     return User(
       id: id ?? this.id,
@@ -64,6 +69,7 @@ class User {
       postCount: postCount ?? this.postCount,
       joinDate: joinDate ?? this.joinDate,
       mood: mood ?? this.mood,
+      isVip: isVip ?? this.isVip,
     );
   }
 
@@ -72,12 +78,8 @@ class User {
     return DateTime.now().difference(joinDate).inDays;
   }
 
-  // 获取用户等级（基于活跃度）
+  // 获取用户等级（VIP标识）
   String get userLevel {
-    final totalActivity = likeCount + collectionCount + postCount;
-    if (totalActivity >= 100) return '活跃用户';
-    if (totalActivity >= 50) return '常规用户';
-    if (totalActivity >= 10) return '新手用户';
-    return '初来乍到';
+    return 'VIP';
   }
 } 
