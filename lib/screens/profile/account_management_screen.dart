@@ -583,13 +583,78 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
               ),
               const SizedBox(width: 12),
               Expanded(
-                child: Text(
-                  userInfo['appleId'] ?? '未设置',
-                  style: const TextStyle(
-                    fontSize: 14,
-                    color: AppColors.textSecondary,
-                  ),
-                  overflow: TextOverflow.ellipsis,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      _getDisplayAppleId(),
+                      style: const TextStyle(
+                        fontSize: 14,
+                        color: AppColors.textSecondary,
+                        fontWeight: FontWeight.w500,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        // 账户类型标签
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: _getAccountTypeDescription().contains('真实') 
+                              ? Colors.green.shade50 
+                              : Colors.blue.shade50,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              color: _getAccountTypeDescription().contains('真实') 
+                                ? Colors.green.shade200 
+                                : Colors.blue.shade200,
+                              width: 0.5,
+                            ),
+                          ),
+                          child: Text(
+                            _getAccountTypeDescription(),
+                            style: TextStyle(
+                              fontSize: 10,
+                              color: _getAccountTypeDescription().contains('真实') 
+                                ? Colors.green.shade700 
+                                : Colors.blue.shade700,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                        if (_isLoggedIn && _currentUser != null && _currentUser!.isVerified) ...[
+                          const SizedBox(width: 8),
+                          Icon(
+                            Icons.verified,
+                            size: 12,
+                            color: Colors.green.shade600,
+                          ),
+                          const SizedBox(width: 2),
+                          Text(
+                            '已验证',
+                            style: TextStyle(
+                              fontSize: 10,
+                              color: Colors.green.shade600,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                                        if (_getAccountTypeDescription().contains('隐私')) ...[
+                      const SizedBox(height: 4),
+                      const Text(
+                        '此邮箱可正常接收邮件，苹果会转发到您的真实邮箱',
+                        style: TextStyle(
+                          fontSize: 10,
+                          color: AppColors.textHint,
+                          fontStyle: FontStyle.italic,
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
               ),
             ],
@@ -853,6 +918,77 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
     );
   }
 
+
+
+    // 获取显示的用户邮箱
+  String _getDisplayAppleId() {
+    if (!_isLoggedIn || _currentUser == null) {
+      return '未登录Apple账户';
+    }
+    
+    final email = _currentUser!.email;
+    
+    // 如果邮箱为空，生成隐私邮箱格式
+    if (email.isEmpty) {
+      return '***@privaterelay.appleid.com';
+    }
+    
+    // 如果邮箱已经是隐私格式（包含***），处理后返回
+    if (email.contains('***')) {
+      // 如果是Apple隐私邮箱格式，去掉前面的数字部分
+      if (email.contains('@privaterelay.appleid.com')) {
+        return '***@privaterelay.appleid.com';
+      }
+      return email;
+    }
+    
+    // 格式化普通邮箱，隐藏中间部分
+    if (email.contains('@')) {
+      final parts = email.split('@');
+      final localPart = parts[0];
+      final domain = parts[1];
+      
+      if (localPart.length > 6) {
+        // 显示前3位和后2位，中间用*号替代
+        final prefix = localPart.substring(0, 3);
+        final suffix = localPart.substring(localPart.length - 2);
+        return '$prefix***$suffix@$domain';
+      } else if (localPart.length > 3) {
+        // 显示前2位和后1位
+        final prefix = localPart.substring(0, 2);
+        final suffix = localPart.substring(localPart.length - 1);
+        return '$prefix**$suffix@$domain';
+      } else {
+        // 太短的话显示第一位加*号
+        final prefix = localPart.substring(0, 1);
+        return '$prefix**@$domain';
+      }
+    }
+    
+    return email; // 如果不是邮箱格式，直接返回
+  }
+  
+  // 获取账户类型描述
+  String _getAccountTypeDescription() {
+    if (!_isLoggedIn || _currentUser == null) {
+      return '';
+    }
+    
+    final email = _currentUser!.email;
+    final displayEmail = _getDisplayAppleId();
+    
+    // 如果原始邮箱为空，或显示的邮箱是隐私格式
+    if (email.isEmpty || displayEmail.contains('***') || displayEmail.contains('privaterelay.appleid.com')) {
+      return '苹果隐私邮箱';
+    }
+    
+    // 检查是否是真实邮箱
+    if (email.contains('@') && !email.contains('***')) {
+      return '真实邮箱账户';
+    }
+    
+    return 'Apple账户';
+  }
 
 
   // 去充值
