@@ -181,10 +181,10 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
             width: 120,
             height: 120,
             decoration: BoxDecoration(
-              color: AppColors.accent.withValues(alpha: 0.1),
+              color: AppColors.accent.withOpacity(0.1),
               borderRadius: BorderRadius.circular(60),
               border: Border.all(
-                color: AppColors.accent.withValues(alpha: 0.3),
+                color: AppColors.accent.withOpacity(0.3),
                 width: 2,
               ),
             ),
@@ -359,7 +359,7 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF667EEA).withValues(alpha: 0.3),
+            color: const Color(0xFF667EEA).withOpacity(0.3),
             blurRadius: 20,
             offset: const Offset(0, 8),
           ),
@@ -381,7 +381,7 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
                   ),
                   borderRadius: BorderRadius.circular(30),
                   border: Border.all(
-                    color: Colors.white.withValues(alpha: 0.3),
+                                          color: Colors.white.withOpacity(0.3),
                     width: 2,
                   ),
                 ),
@@ -514,20 +514,20 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
         decoration: BoxDecoration(
           gradient: LinearGradient(
             colors: [
-              color.withValues(alpha: 0.15),
-              color.withValues(alpha: 0.08),
+              color.withOpacity(0.15),
+                              color.withOpacity(0.08),
             ],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
           borderRadius: BorderRadius.circular(18),
           border: Border.all(
-            color: color.withValues(alpha: 0.25),
+            color: color.withOpacity(0.25),
             width: 1.5,
           ),
           boxShadow: [
             BoxShadow(
-              color: color.withValues(alpha: 0.2),
+              color: color.withOpacity(0.2),
               blurRadius: 12,
               offset: const Offset(0, 4),
             ),
@@ -555,7 +555,7 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w500,
-                color: color.withValues(alpha: 0.75),
+                color: color.withOpacity(0.75),
               ),
             ),
           ],
@@ -572,7 +572,7 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
         color: AppColors.cardBackground,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: AppColors.divider.withValues(alpha: 0.5),
+          color: AppColors.divider.withOpacity(0.5),
           width: 1,
         ),
       ),
@@ -715,10 +715,10 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
         decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.08),
+          color: color.withOpacity(0.08),
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
-            color: color.withValues(alpha: 0.2),
+            color: color.withOpacity(0.2),
             width: 1,
           ),
         ),
