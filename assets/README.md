@@ -2,7 +2,6 @@
 
 ## 文件夹结构
 
-```
 assets/
 ├── images/
 │   ├── avatars/          # 用户头像
