@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:in_app_purchase/in_app_purchase.dart';
 import '../../constants/app_colors.dart';
 import '../../widgets/common/custom_card.dart';
 import '../../services/apple_auth_service.dart';
+import '../../services/in_app_purchase_service.dart';
+import '../../services/data_service.dart';
 import 'account_management_screen.dart';
 
 class RechargeCenterScreen extends StatefulWidget {
@@ -15,7 +18,11 @@ class _RechargeCenterScreenState extends State<RechargeCenterScreen> {
   int currentCoins = 0; // 当前金币
   int selectedAmount = -1; // 选中的充值金额索引
   final AppleAuthService _authService = AppleAuthService();
+  final InAppPurchaseService _inAppPurchaseService = InAppPurchaseService();
+  final DataService _dataService = DataService.getInstance();
   bool _isLoggedIn = false;
+  bool _isPurchasing = false;
+  List<ProductDetails> _rechargeProducts = [];
   
   final List<Map<String, dynamic>> rechargeOptions = [
     {'price': 12, 'coins': 840, 'product_id': 'lelele_12', 'popular': false},
@@ -31,6 +38,13 @@ class _RechargeCenterScreenState extends State<RechargeCenterScreen> {
   void initState() {
     super.initState();
     _checkLoginStatus();
+    _loadRechargeProducts();
+    _updateCurrentCoins();
+    
+    // 设置购买成功回调
+    _inAppPurchaseService.setPurchaseSuccessCallback(() {
+      _onPurchaseSuccess();
+    });
   }
 
   // 检查登录状态
@@ -41,6 +55,165 @@ class _RechargeCenterScreenState extends State<RechargeCenterScreen> {
         _isLoggedIn = isLoggedIn;
       });
     }
+  }
+
+  // 加载充值商品
+  Future<void> _loadRechargeProducts() async {
+    if (_inAppPurchaseService.isAvailable) {
+      final products = _inAppPurchaseService.getRechargeProducts();
+      if (mounted) {
+        setState(() {
+          _rechargeProducts = products;
+        });
+      }
+    }
+  }
+
+  // 更新当前金币数
+  void _updateCurrentCoins() {
+    final user = _dataService.getCurrentUser();
+    if (mounted) {
+      setState(() {
+        currentCoins = user.coins;
+      });
+    }
+  }
+
+  // 购买成功处理
+  void _onPurchaseSuccess() {
+    if (mounted) {
+      // 更新金币显示
+      _updateCurrentCoins();
+      
+      // 显示成功消息
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('充值成功！金币已到账'),
+          backgroundColor: Colors.green,
+          duration: Duration(seconds: 2),
+        ),
+      );
+      
+      // 延迟一段时间后返回到账户管理页面，并传递成功标识
+      Future.delayed(const Duration(seconds: 1), () {
+        if (mounted) {
+          Navigator.pop(context, true); // 返回true表示充值成功
+        }
+      });
+    }
+  }
+
+  // 购买商品
+  Future<void> _purchaseProduct(String productId) async {
+    if (!_isLoggedIn) {
+      _showLoginDialog();
+      return;
+    }
+
+    if (_isPurchasing) {
+      return;
+    }
+
+    final productDetails = _inAppPurchaseService.getProductDetails(productId);
+    if (productDetails == null) {
+      _showErrorDialog('商品信息获取失败，请稍后再试');
+      return;
+    }
+
+    setState(() {
+      _isPurchasing = true;
+    });
+
+    try {
+      final success = await _inAppPurchaseService.buyProduct(productDetails);
+      
+      if (success) {
+        _showSuccessDialog('购买请求已发送，请完成支付');
+        // 等待一段时间后刷新金币数（实际应用中通过购买回调来刷新）
+        Future.delayed(const Duration(seconds: 2), () {
+          _updateCurrentCoins();
+        });
+      } else {
+        _showErrorDialog('购买失败，请重试');
+      }
+    } catch (e) {
+      _showErrorDialog('购买出错：$e');
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isPurchasing = false;
+        });
+      }
+    }
+  }
+
+  // 显示登录对话框
+  void _showLoginDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('需要登录'),
+          content: const Text('请先登录后再进行充值'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('取消'),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const AccountManagementScreen(),
+                  ),
+                );
+              },
+              child: const Text('去登录'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  // 显示成功对话框
+  void _showSuccessDialog(String message) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('充值成功'),
+          content: Text(message),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('确定'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  // 显示错误对话框
+  void _showErrorDialog(String message) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('充值失败'),
+          content: Text(message),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('确定'),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   @override
@@ -253,7 +426,7 @@ class _RechargeCenterScreenState extends State<RechargeCenterScreen> {
   }
 
   Widget _buildRechargeButton() {
-    final isEnabled = selectedAmount >= 0;
+    final isEnabled = selectedAmount >= 0 && !_isPurchasing;
     
     return SizedBox(
       width: double.infinity,
@@ -266,18 +439,41 @@ class _RechargeCenterScreenState extends State<RechargeCenterScreen> {
             borderRadius: BorderRadius.circular(16),
           ),
         ),
-        child: Text(
-          !_isLoggedIn
-            ? '请先进行登录'
-            : (isEnabled 
-                ? '充值 ¥${rechargeOptions[selectedAmount]['price']}'
-                : '请选择充值金额'),
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
+        child: _isPurchasing
+          ? const Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(
+                    color: Colors.white,
+                    strokeWidth: 2,
+                  ),
+                ),
+                SizedBox(width: 12),
+                Text(
+                  '正在处理...',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            )
+          : Text(
+              !_isLoggedIn
+                ? '请先进行登录'
+                : (selectedAmount >= 0 
+                    ? '充值 ¥${rechargeOptions[selectedAmount]['price']}'
+                    : '请选择充值金额'),
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
       ),
     );
   }
@@ -318,43 +514,10 @@ class _RechargeCenterScreenState extends State<RechargeCenterScreen> {
     }
     
     final option = rechargeOptions[selectedAmount];
-    final price = option['price'];
-    final coins = option['coins'];
+    final productId = option['product_id'];
     
-    // 这里应该调用支付接口
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: AppColors.background,
-        title: const Text(
-          '确认充值',
-          style: TextStyle(color: AppColors.textPrimary),
-        ),
-        content: Text(
-          '确认支付 ¥$price 购买 $coins 个金币？',
-          style: const TextStyle(color: AppColors.textSecondary),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('取消'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              _processRecharge(price, coins);
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF00695C),
-            ),
-            child: const Text(
-              '确认',
-              style: TextStyle(color: Colors.white),
-            ),
-          ),
-        ],
-      ),
-    );
+    // 直接调用购买方法
+    _purchaseProduct(productId);
   }
 
   // 显示登录提示对话框
@@ -407,18 +570,10 @@ class _RechargeCenterScreenState extends State<RechargeCenterScreen> {
     });
   }
 
-  void _processRecharge(int price, int coins) {
-    // 模拟充值成功
-    setState(() {
-      currentCoins += coins;
-      selectedAmount = -1;
-    });
-    
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('充值成功！到账金币：${coins}个'),
-        backgroundColor: const Color(0xFF00695C),
-      ),
-    );
+  @override
+  void dispose() {
+    // 清理购买成功回调
+    _inAppPurchaseService.setPurchaseSuccessCallback(null);
+    super.dispose();
   }
 } 

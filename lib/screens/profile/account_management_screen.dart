@@ -31,8 +31,8 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
     'avatar': 'assets/images/avatars/user_1.png',
     'isVip': false,
     'vipExpireDate': null,
-    'coins': 1280,
-    'totalCoins': 5680,
+    'coins': 0,
+    'totalCoins': 0,
   };
 
   @override
@@ -48,7 +48,7 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
       final isLoggedIn = await _authService.isLoggedIn();
       final currentUser = await _authService.getCurrentUser();
       
-      // 获取个人中心的用户数据作为默认昵称
+      // 获取个人中心的用户数据作为默认昵称和金币
       final profileUser = _dataService.getCurrentUser();
       
       if (mounted) {
@@ -56,6 +56,11 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
           _isLoggedIn = isLoggedIn;
           _currentUser = currentUser;
           _isLoading = false;
+          
+          // 同步个人中心的数据
+          userInfo['coins'] = profileUser.coins;
+          userInfo['isVip'] = profileUser.isVip;
+          userInfo['vipExpireDate'] = profileUser.vipExpireDate;
           
           // 更新用户信息
           if (currentUser != null) {
@@ -993,23 +998,55 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
 
 
   // 去充值
-  void _goToRecharge() {
-    Navigator.push(
+  void _goToRecharge() async {
+    final result = await Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => const RechargeCenterScreen(),
       ),
     );
+    
+    // 充值返回后刷新金币数据
+    if (result == true) {
+      _refreshUserData();
+    }
   }
 
   // 升级VIP
-  void _upgradeToVip() {
-    Navigator.push(
+  void _upgradeToVip() async {
+    final result = await Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => const VipSubscriptionScreen(),
       ),
     );
+    
+    // VIP购买返回后刷新用户数据
+    if (result == true) {
+      _refreshUserData();
+    }
+  }
+
+  // 刷新用户数据
+  void _refreshUserData() {
+    if (mounted) {
+      final profileUser = _dataService.getCurrentUser();
+      setState(() {
+        // 更新金币数据
+        userInfo['coins'] = profileUser.coins;
+        userInfo['isVip'] = profileUser.isVip;
+        userInfo['vipExpireDate'] = profileUser.vipExpireDate;
+        
+        // 同步昵称（如果个人中心有更新的话）
+        if (_currentUser?.nickname == null || _currentUser!.nickname!.isEmpty) {
+          userInfo['nickname'] = profileUser.nickname;
+        }
+      });
+      
+      if (kDebugMode) {
+        print('账户管理页面: 用户数据已刷新 - 金币: ${profileUser.coins}, VIP: ${profileUser.isVip}');
+      }
+    }
   }
 
 

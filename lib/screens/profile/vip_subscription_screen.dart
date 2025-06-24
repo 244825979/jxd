@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
+import 'package:in_app_purchase/in_app_purchase.dart';
 import '../../constants/app_colors.dart';
 import '../../widgets/common/custom_card.dart';
 import '../../services/apple_auth_service.dart';
+import '../../services/in_app_purchase_service.dart';
 import '../../services/data_service.dart';
 import 'account_management_screen.dart';
 
@@ -15,8 +18,11 @@ class VipSubscriptionScreen extends StatefulWidget {
 class _VipSubscriptionScreenState extends State<VipSubscriptionScreen> {
   int selectedPlan = -1; // 选中的VIP套餐索引
   final AppleAuthService _authService = AppleAuthService();
+  final InAppPurchaseService _inAppPurchaseService = InAppPurchaseService();
   final DataService _dataService = DataService.getInstance();
   bool _isLoggedIn = false;
+  bool _isPurchasing = false;
+  List<ProductDetails> _vipProducts = [];
   
   final List<Map<String, dynamic>> vipPlans = [
     {
@@ -46,6 +52,12 @@ class _VipSubscriptionScreenState extends State<VipSubscriptionScreen> {
   void initState() {
     super.initState();
     _checkLoginStatus();
+    _loadVipProducts();
+    
+    // 设置购买成功回调
+    _inAppPurchaseService.setPurchaseSuccessCallback(() {
+      _onVipPurchaseSuccess();
+    });
   }
 
   // 检查登录状态
@@ -56,6 +68,189 @@ class _VipSubscriptionScreenState extends State<VipSubscriptionScreen> {
         _isLoggedIn = isLoggedIn;
       });
     }
+  }
+
+  // 加载VIP商品
+  Future<void> _loadVipProducts() async {
+    try {
+      if (!_inAppPurchaseService.isAvailable) {
+        print('VIP页面: 内购服务不可用，正在初始化...');
+        final initialized = await _inAppPurchaseService.initialize();
+        if (!initialized) {
+          print('VIP页面: 内购服务初始化失败');
+          return;
+        }
+      }
+
+      final products = _inAppPurchaseService.getVipProducts();
+      print('VIP页面: 加载到 ${products.length} 个VIP商品');
+      
+      for (final product in products) {
+        print('  - ${product.id}: ${product.title} - ${product.price}');
+      }
+      
+      if (mounted) {
+        setState(() {
+          _vipProducts = products;
+        });
+      }
+    } catch (e) {
+      print('VIP页面: 加载VIP商品失败: $e');
+    }
+  }
+
+  // VIP购买成功处理
+  void _onVipPurchaseSuccess() {
+    if (mounted) {
+      // 显示成功消息
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('VIP开通成功！享受专属特权'),
+          backgroundColor: Colors.green,
+          duration: Duration(seconds: 2),
+        ),
+      );
+      
+      // 延迟一段时间后返回到账户管理页面，并传递成功标识
+      Future.delayed(const Duration(seconds: 1), () {
+        if (mounted) {
+          Navigator.pop(context, true); // 返回true表示VIP开通成功
+        }
+      });
+    }
+  }
+
+  // 购买VIP
+  Future<void> _purchaseVip(String productId) async {
+    if (!_isLoggedIn) {
+      _showLoginDialog();
+      return;
+    }
+
+    if (_isPurchasing) {
+      return;
+    }
+
+    // 检查内购服务是否可用
+    if (!_inAppPurchaseService.isAvailable) {
+      _showErrorDialog('内购服务不可用，请检查网络连接后重试');
+      return;
+    }
+
+    // 获取商品详情
+    final productDetails = _inAppPurchaseService.getProductDetails(productId);
+    if (productDetails == null) {
+      // 先尝试重新加载商品信息
+      await _loadVipProducts();
+      final retryProductDetails = _inAppPurchaseService.getProductDetails(productId);
+      if (retryProductDetails == null) {
+        _showErrorDialog('商品信息获取失败(ID: $productId)，请检查网络连接后重试');
+        return;
+      }
+      // 使用重试后的商品详情
+      _proceedWithPurchase(retryProductDetails);
+      return;
+    }
+
+    _proceedWithPurchase(productDetails);
+  }
+
+  // 执行购买流程
+  Future<void> _proceedWithPurchase(ProductDetails productDetails) async {
+    setState(() {
+      _isPurchasing = true;
+    });
+
+    try {
+      final success = await _inAppPurchaseService.buyProduct(productDetails);
+      
+      if (success) {
+        _showSuccessDialog('VIP开通请求已发送，请完成支付');
+        // 等待一段时间后刷新VIP状态（实际应用中通过购买回调来刷新）
+        Future.delayed(const Duration(seconds: 2), () {
+          // 这里可以刷新用户VIP状态
+        });
+      } else {
+        _showErrorDialog('VIP开通失败，请重试');
+      }
+    } catch (e) {
+      _showErrorDialog('VIP开通出错：$e');
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isPurchasing = false;
+        });
+      }
+    }
+  }
+
+  // 显示登录对话框
+  void _showLoginDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('需要登录'),
+          content: const Text('请先登录后再开通VIP'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('取消'),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const AccountManagementScreen(),
+                  ),
+                );
+              },
+              child: const Text('去登录'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  // 显示成功对话框
+  void _showSuccessDialog(String message) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('VIP开通成功'),
+          content: Text(message),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('确定'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  // 显示错误对话框
+  void _showErrorDialog(String message) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('VIP开通失败'),
+          content: Text(message),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('确定'),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   @override
@@ -105,6 +300,10 @@ class _VipSubscriptionScreenState extends State<VipSubscriptionScreen> {
             
             // 开通按钮
             _buildSubscribeButton(),
+            const SizedBox(height: 16),
+            
+            // 调试信息（仅在调试模式下显示）
+            if (kDebugMode) _buildDebugInfo(),
             const SizedBox(height: 24),
             
             // 说明文字
@@ -289,7 +488,7 @@ class _VipSubscriptionScreenState extends State<VipSubscriptionScreen> {
   }
 
   Widget _buildSubscribeButton() {
-    final isEnabled = selectedPlan >= 0;
+    final isEnabled = selectedPlan >= 0 && !_isPurchasing;
     
     return SizedBox(
       width: double.infinity,
@@ -302,18 +501,41 @@ class _VipSubscriptionScreenState extends State<VipSubscriptionScreen> {
             borderRadius: BorderRadius.circular(16),
           ),
         ),
-        child: Text(
-          !_isLoggedIn
-            ? '请先进行登录'
-            : (isEnabled 
-                ? '开通VIP ¥${vipPlans[selectedPlan]['price']}'
-                : '请选择VIP套餐'),
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
+        child: _isPurchasing
+          ? const Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(
+                    color: Colors.white,
+                    strokeWidth: 2,
+                  ),
+                ),
+                SizedBox(width: 12),
+                Text(
+                  '正在处理...',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            )
+          : Text(
+              !_isLoggedIn
+                ? '请先进行登录'
+                : (selectedPlan >= 0 
+                    ? '开通VIP ¥${vipPlans[selectedPlan]['price']}'
+                    : '请选择VIP套餐'),
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
       ),
     );
   }
@@ -333,8 +555,7 @@ class _VipSubscriptionScreenState extends State<VipSubscriptionScreen> {
         const SizedBox(height: 12),
         const Text(
           '• VIP会员服务立即生效\n'
-          '• 自动续费可在设置中管理\n'
-          '• 支持随时取消订阅',
+          '• 到期自动取消',
           style: TextStyle(
             fontSize: 14,
             color: AppColors.textSecondary,
@@ -355,43 +576,10 @@ class _VipSubscriptionScreenState extends State<VipSubscriptionScreen> {
     }
     
     final plan = vipPlans[selectedPlan];
-    final price = plan['price'];
-    final duration = plan['duration'];
+    final productId = plan['product_id'];
     
-    // 这里应该调用VIP订阅接口
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: AppColors.background,
-        title: const Text(
-          '确认开通VIP',
-          style: TextStyle(color: AppColors.textPrimary),
-        ),
-        content: Text(
-          '确认支付 ¥$price 开通 $duration VIP会员？',
-          style: const TextStyle(color: AppColors.textSecondary),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('取消'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              _processSubscription(price, duration);
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF00695C),
-            ),
-            child: const Text(
-              '确认',
-              style: TextStyle(color: Colors.white),
-            ),
-          ),
-        ],
-      ),
-    );
+    // 直接调用购买方法
+    _purchaseVip(productId);
   }
 
   // 显示登录提示对话框
@@ -441,22 +629,74 @@ class _VipSubscriptionScreenState extends State<VipSubscriptionScreen> {
     ).then((_) {
       // 从登录页面返回后重新检查登录状态
       _checkLoginStatus();
-    });
+    }    );
   }
 
-  void _processSubscription(int price, String duration) {
-    // 模拟订阅成功
-    _dataService.setVipStatus(true); // 设置VIP状态为true
-    
-    setState(() {
-      selectedPlan = -1;
-    });
-    
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('VIP开通成功！有效期：$duration'),
-        backgroundColor: const Color(0xFF00695C),
+  // 调试信息组件
+  Widget _buildDebugInfo() {
+    return CustomCard(
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              '调试信息',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: AppColors.textPrimary,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              '内购服务状态: ${_inAppPurchaseService.isAvailable ? "可用" : "不可用"}',
+              style: const TextStyle(
+                fontSize: 14,
+                color: AppColors.textSecondary,
+              ),
+            ),
+            Text(
+              '已加载商品数: ${_vipProducts.length}',
+              style: const TextStyle(
+                fontSize: 14,
+                color: AppColors.textSecondary,
+              ),
+            ),
+            if (_vipProducts.isNotEmpty)
+              ...(_vipProducts.map((product) => Text(
+                '  - ${product.id}: ${product.title}',
+                style: const TextStyle(
+                  fontSize: 12,
+                  color: AppColors.textSecondary,
+                ),
+              ))),
+            const SizedBox(height: 8),
+            ElevatedButton(
+              onPressed: () async {
+                await _loadVipProducts();
+                setState(() {});
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.orange,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              ),
+              child: const Text(
+                '重新加载商品',
+                style: TextStyle(color: Colors.white, fontSize: 12),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
-} 
+
+  @override
+  void dispose() {
+    // 清理购买成功回调
+    _inAppPurchaseService.setPurchaseSuccessCallback(null);
+    super.dispose();
+  }
+}  

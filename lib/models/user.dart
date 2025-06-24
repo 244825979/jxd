@@ -8,6 +8,8 @@ class User {
   final DateTime joinDate;
   final String mood;
   final bool isVip;
+  final DateTime? vipExpireDate;
+  final int coins;
 
   User({
     required this.id,
@@ -19,6 +21,8 @@ class User {
     required this.joinDate,
     required this.mood,
     this.isVip = false,
+    this.vipExpireDate,
+    this.coins = 0,
   });
 
   factory User.fromJson(Map<String, dynamic> json) {
@@ -32,6 +36,10 @@ class User {
       joinDate: DateTime.parse(json['joinDate'] ?? DateTime.now().toIso8601String()),
       mood: json['mood'] ?? '',
       isVip: json['isVip'] ?? false,
+      vipExpireDate: json['vipExpireDate'] != null 
+        ? DateTime.parse(json['vipExpireDate']) 
+        : null,
+      coins: json['coins'] ?? 0,
     );
   }
 
@@ -46,6 +54,8 @@ class User {
       'joinDate': joinDate.toIso8601String(),
       'mood': mood,
       'isVip': isVip,
+      'vipExpireDate': vipExpireDate?.toIso8601String(),
+      'coins': coins,
     };
   }
 
@@ -59,6 +69,8 @@ class User {
     DateTime? joinDate,
     String? mood,
     bool? isVip,
+    DateTime? vipExpireDate,
+    int? coins,
   }) {
     return User(
       id: id ?? this.id,
@@ -70,6 +82,8 @@ class User {
       joinDate: joinDate ?? this.joinDate,
       mood: mood ?? this.mood,
       isVip: isVip ?? this.isVip,
+      vipExpireDate: vipExpireDate ?? this.vipExpireDate,
+      coins: coins ?? this.coins,
     );
   }
 

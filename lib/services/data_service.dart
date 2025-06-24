@@ -1173,6 +1173,16 @@ class DataService {
     _currentUser = _currentUser.copyWith(isVip: isVip);
   }
 
+  // 更新用户金币
+  void updateUserCoins(int coins) {
+    _currentUser = _currentUser.copyWith(coins: coins);
+  }
+
+  // 更新用户VIP到期时间
+  void updateUserVipExpireDate(DateTime? expireDate) {
+    _currentUser = _currentUser.copyWith(vipExpireDate: expireDate);
+  }
+
   // 获取用户数据
   UserData getUserData() {
     return _userData;
