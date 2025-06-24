@@ -19,20 +19,20 @@ class InAppPurchaseService {
   
   // 充值商品ID
   static const Set<String> _rechargeProductIds = {
-    'lelele_12',
-    'lelele_38', 
-    'lelele_68',
-    'lelele_98',
-    'lelele_198',
-    'lelele_298',
-    'lelele_598',
+    'pack_coin_ios_12',
+    'pack_coin_ios_38',
+    'pack_coin_ios_68',
+    'pack_coin_ios_98',
+    'pack_coin_ios_198',
+    'pack_coin_ios_298',
+    'pack_coin_ios_598',
   };
   
   // VIP商品ID
   static const Set<String> _vipProductIds = {
-    'lelelevip68',
-    'lelelevip168',
-    'lelelevip399',
+    'pack_vip_68',
+    'pack_vip_168',
+    'pack_vip_399',
   };
   
   static const Set<String> _allProductIds = {

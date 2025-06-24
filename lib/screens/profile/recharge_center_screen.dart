@@ -24,13 +24,13 @@ class _RechargeCenterScreenState extends State<RechargeCenterScreen> {
   bool _isPurchasing = false;
   
   final List<Map<String, dynamic>> rechargeOptions = [
-    {'price': 12, 'coins': 840, 'product_id': 'lelele_12', 'popular': false},
-    {'price': 38, 'coins': 2660, 'product_id': 'lelele_38', 'popular': false},
-    {'price': 68, 'coins': 4760, 'product_id': 'lelele_68', 'popular': true},
-    {'price': 98, 'coins': 6860, 'product_id': 'lelele_98', 'popular': false},
-    {'price': 198, 'coins': 13860, 'product_id': 'lelele_198', 'popular': false},
-    {'price': 298, 'coins': 20860, 'product_id': 'lelele_298', 'popular': false},
-    {'price': 598, 'coins': 41860, 'product_id': 'lelele_598', 'popular': false},
+    {'price': 12, 'coins': 840, 'product_id': 'pack_coin_ios_12', 'name': '12元金币礼包', 'popular': false},
+    {'price': 38, 'coins': 2660, 'product_id': 'pack_coin_ios_38', 'name': '38元金币礼包', 'popular': false},
+    {'price': 68, 'coins': 4760, 'product_id': 'pack_coin_ios_68', 'name': '68元金币礼包', 'popular': true},
+    {'price': 98, 'coins': 6860, 'product_id': 'pack_coin_ios_98', 'name': '98元金币礼包', 'popular': false},
+    {'price': 198, 'coins': 13860, 'product_id': 'pack_coin_ios_198', 'name': '198元金币礼包', 'popular': false},
+    {'price': 298, 'coins': 20860, 'product_id': 'pack_coin_ios_298', 'name': '298元金币礼包', 'popular': false},
+    {'price': 598, 'coins': 41860, 'product_id': 'pack_coin_ios_598', 'name': '598元金币礼包', 'popular': false},
   ];
 
   @override
