@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
 import '../../constants/app_colors.dart';
 import '../../widgets/common/custom_card.dart';
 import '../../services/apple_auth_service.dart';
@@ -236,8 +235,7 @@ class _VipSubscriptionScreenState extends State<VipSubscriptionScreen> {
             _buildSubscribeButton(),
             const SizedBox(height: 16),
             
-            // 调试信息（仅在调试模式下显示）
-            if (kDebugMode) _buildDebugInfo(),
+
             const SizedBox(height: 24),
             
             // 说明文字
@@ -566,43 +564,7 @@ class _VipSubscriptionScreenState extends State<VipSubscriptionScreen> {
     }    );
   }
 
-  // 调试信息组件
-  Widget _buildDebugInfo() {
-    return CustomCard(
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              '调试信息',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: AppColors.textPrimary,
-              ),
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              '内购服务状态: 已移除',
-              style: TextStyle(
-                fontSize: 14,
-                color: AppColors.textSecondary,
-              ),
-            ),
-            const Text(
-              '当前使用模拟购买',
-              style: TextStyle(
-                fontSize: 14,
-                color: AppColors.textSecondary,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+
 
   @override
   void dispose() {

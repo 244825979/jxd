@@ -42,7 +42,7 @@ class PermissionService {
       // 直接进行网络请求触发权限
       await Future.delayed(const Duration(milliseconds: 100));
     } catch (e) {
-      print('本地网络权限请求: $e');
+      // 静默处理错误
     }
   }
 
@@ -72,7 +72,6 @@ class PermissionService {
       
       return response.statusCode == 200;
     } catch (e) {
-      print('网络请求失败: $e');
       // 即使请求失败，权限对话框也可能已经显示
       return false;
     }

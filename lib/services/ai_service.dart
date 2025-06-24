@@ -45,11 +45,9 @@ class AIService {
         final content = data['choices'][0]['message']['content'];
         return content?.toString().trim() ?? '抱歉，我现在无法回复，请稍后再试。';
       } else {
-        print('API Error: ${response.statusCode} - ${response.body}');
         return _getFallbackResponse(userMessage);
       }
     } catch (e) {
-      print('Network Error: $e');
       return _getFallbackResponse(userMessage);
     }
   }

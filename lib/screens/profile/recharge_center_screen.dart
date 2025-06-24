@@ -59,10 +59,7 @@ class _RechargeCenterScreenState extends State<RechargeCenterScreen> {
     }
   }
 
-  // 购买成功处理（已废弃 - 内购功能已移除）
-  void _onPurchaseSuccess() {
-    // 此方法不再被调用，因为内购功能已被移除
-  }
+
 
   // 购买商品（内购功能已移除）
   Future<void> _purchaseProduct(String productId) async {

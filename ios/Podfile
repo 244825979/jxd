@@ -39,5 +39,30 @@ end
 post_install do |installer|
   installer.pods_project.targets.each do |target|
     flutter_additional_ios_build_settings(target)
+    
+    # 优化权限配置 - 只启用项目需要的权限
+    target.build_configurations.each do |config|
+      config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] ||= [
+        '$(inherited)',
+        
+        # 项目需要的权限
+        'PERMISSION_PHOTOS=1',           # 相册权限（用于选择图片）
+        'PERMISSION_CAMERA=1',           # 摄像头权限（用于拍照）
+        'PERMISSION_MICROPHONE=1',       # 麦克风权限（用于录音功能）
+        'PERMISSION_NOTIFICATIONS=1',    # 通知权限
+        
+        # 禁用不需要的权限
+        'PERMISSION_EVENTS=0',           # 日历权限
+        'PERMISSION_REMINDERS=0',        # 提醒权限
+        'PERMISSION_CONTACTS=0',         # 通讯录权限
+        'PERMISSION_LOCATION=0',         # 位置权限
+        'PERMISSION_SPEECH_RECOGNIZER=0', # 语音识别权限
+        'PERMISSION_MEDIA_LIBRARY=0',    # 媒体库权限
+        'PERMISSION_SENSORS=0',          # 传感器权限
+        'PERMISSION_BLUETOOTH=0',        # 蓝牙权限
+        'PERMISSION_APP_TRACKING_TRANSPARENCY=0', # 应用跟踪权限
+        'PERMISSION_CRITICAL_ALERTS=0',  # 关键警报权限
+      ]
+    end
   end
 end

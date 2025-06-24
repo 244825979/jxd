@@ -797,7 +797,7 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
                 });
                 
                 if (kDebugMode) {
-                  print('更新用户信息: nickname=$finalNickname, appleId=$email');
+                  // 更新用户信息
                 }
               });
               
@@ -1044,7 +1044,7 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
       });
       
       if (kDebugMode) {
-        print('账户管理页面: 用户数据已刷新 - 金币: ${profileUser.coins}, VIP: ${profileUser.isVip}');
+        // 用户数据已刷新
       }
     }
   }
@@ -1364,9 +1364,6 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
       }
     } catch (e) {
       // 忽略关闭对话框时的错误
-      if (kDebugMode) {
-        print('关闭加载对话框失败: $e');
-      }
     }
   }
 

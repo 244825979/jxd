@@ -105,9 +105,6 @@ class AppleAuthService {
     try {
       return await SignInWithApple.isAvailable();
     } catch (e) {
-      if (kDebugMode) {
-        print('检查Apple登录可用性失败: $e');
-      }
       return false;
     }
   }
@@ -115,15 +112,8 @@ class AppleAuthService {
   // 执行Apple登录
   Future<({AppleSignInResult result, AppleUserInfo? userInfo, String? error})> signInWithApple() async {
     try {
-      if (kDebugMode) {
-        print('开始Apple登录流程...');
-      }
-
       // 检查是否支持Apple登录
       final isAvailable = await isAppleSignInAvailable();
-      if (kDebugMode) {
-        print('Apple登录可用性: $isAvailable');
-      }
       
       if (!isAvailable) {
         return (
@@ -136,10 +126,6 @@ class AppleAuthService {
       // 生成nonce用于安全验证
       final rawNonce = _generateNonce();
       final nonce = _sha256ofString(rawNonce);
-      
-      if (kDebugMode) {
-        print('生成nonce完成，准备发起Apple登录请求...');
-      }
 
       // 发起Apple登录请求
       final credential = await SignInWithApple.getAppleIDCredential(
@@ -150,18 +136,13 @@ class AppleAuthService {
         nonce: nonce,
       );
 
-      if (kDebugMode) {
-        print('获取Apple凭证成功: userId=${credential.userIdentifier}, email=${credential.email}');
-      }
+
 
       // 处理用户信息
       final email = credential.email ?? '';
       final userId = credential.userIdentifier ?? '';
       
       if (userId.isEmpty) {
-        if (kDebugMode) {
-          print('Apple登录失败: 用户ID为空');
-        }
         return (
           result: AppleSignInResult.failed,
           userInfo: null,
@@ -183,10 +164,6 @@ class AppleAuthService {
       final storage = await _getStorage();
       await storage.saveBool('is_logged_in', true);
 
-      if (kDebugMode) {
-        print('Apple登录成功: ${userInfo.displayName}');
-      }
-
       return (
         result: AppleSignInResult.success,
         userInfo: userInfo,
@@ -194,9 +171,6 @@ class AppleAuthService {
       );
 
     } on SignInWithAppleAuthorizationException catch (e) {
-      if (kDebugMode) {
-        print('Apple登录授权异常: ${e.code} - ${e.message}');
-      }
 
       // 处理Apple特定的异常
       switch (e.code) {
@@ -233,10 +207,6 @@ class AppleAuthService {
           );
       }
     } catch (e) {
-      if (kDebugMode) {
-        print('Apple登录出现异常: $e');
-        print('异常类型: ${e.runtimeType}');
-      }
 
       // 处理其他类型的错误
       final errorString = e.toString().toLowerCase();
@@ -292,9 +262,6 @@ class AppleAuthService {
       final userMap = json.decode(userJson) as Map<String, dynamic>;
       return AppleUserInfo.fromJson(userMap);
     } catch (e) {
-      if (kDebugMode) {
-        print('获取用户信息失败: $e');
-      }
       return null;
     }
   }
@@ -324,9 +291,6 @@ class AppleAuthService {
       await _saveUserInfo(updatedUser);
       return true;
     } catch (e) {
-      if (kDebugMode) {
-        print('更新昵称失败: $e');
-      }
       return false;
     }
   }
@@ -339,14 +303,8 @@ class AppleAuthService {
       await storage.remove('user_id');
       await storage.remove('user_email');
       await storage.saveBool('is_logged_in', false);
-      
-      if (kDebugMode) {
-        print('用户已登出');
-      }
     } catch (e) {
-      if (kDebugMode) {
-        print('登出失败: $e');
-      }
+      // 静默处理错误
     }
   }
 
@@ -356,14 +314,8 @@ class AppleAuthService {
       // 清除所有用户数据
       final storage = await _getStorage();
       await storage.clear();
-      
-      if (kDebugMode) {
-        print('账户已注销');
-      }
     } catch (e) {
-      if (kDebugMode) {
-        print('注销账户失败: $e');
-      }
+      // 静默处理错误
     }
   }
 
@@ -389,9 +341,6 @@ class AppleAuthService {
           return false;
       }
     } catch (e) {
-      if (kDebugMode) {
-        print('检查凭证状态失败: $e');
-      }
       return false;
     }
   }

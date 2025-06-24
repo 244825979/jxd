@@ -1383,7 +1383,6 @@ class DataService {
       // 调用DeepSeek API获取回复
       return await AIService.getChatResponse(userMessage);
     } catch (e) {
-      print('AI回复失败: $e');
       // 如果API调用失败，返回备用回复
       return _getFallbackResponse(userMessage);
     }

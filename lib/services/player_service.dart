@@ -115,7 +115,7 @@ class PlayerService extends ChangeNotifier {
         ));
       }
     } catch (e) {
-      print('播放音频失败: $e');
+      // 静默处理错误
     }
   }
 

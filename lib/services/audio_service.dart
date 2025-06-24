@@ -115,7 +115,6 @@ class AudioService {
       
       await _audioPlayer.resume();
     } catch (e) {
-      print('播放音频失败: $e');
       rethrow; // 向上传递错误以便调用者处理
     }
   }
@@ -125,7 +124,7 @@ class AudioService {
     try {
       await _audioPlayer.pause();
     } catch (e) {
-      print('暂停播放失败: $e');
+      // 静默处理错误
     }
   }
 
@@ -134,7 +133,7 @@ class AudioService {
     try {
       await _audioPlayer.resume();
     } catch (e) {
-      print('恢复播放失败: $e');
+      // 静默处理错误
     }
   }
 
@@ -145,7 +144,7 @@ class AudioService {
       _currentPosition = Duration.zero;
       _positionController.add(_currentPosition);
     } catch (e) {
-      print('停止播放失败: $e');
+      // 静默处理错误
     }
   }
 
@@ -154,7 +153,7 @@ class AudioService {
     try {
       await _audioPlayer.seek(position);
     } catch (e) {
-      print('跳转失败: $e');
+      // 静默处理错误
     }
   }
 
@@ -163,7 +162,7 @@ class AudioService {
     try {
       await _audioPlayer.setVolume(volume.clamp(0.0, 1.0));
     } catch (e) {
-      print('设置音量失败: $e');
+      // 静默处理错误
     }
   }
 

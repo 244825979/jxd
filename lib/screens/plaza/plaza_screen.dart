@@ -89,7 +89,7 @@ class _PlazaScreenState extends State<PlazaScreen> with WidgetsBindingObserver {
           _loadData();
         }
       } catch (e) {
-        print('Navigation error: $e');
+        // 静默处理导航错误
       } finally {
         _isNavigating = false; // 导航完成后重置标志
       }
