@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:in_app_purchase/in_app_purchase.dart';
 import '../../constants/app_colors.dart';
 import '../../widgets/common/custom_card.dart';
 import '../../services/apple_auth_service.dart';
 import '../../services/data_service.dart';
+import '../../services/in_app_purchase_service.dart';
 import 'account_management_screen.dart';
 
 class RechargeCenterScreen extends StatefulWidget {
@@ -17,6 +19,7 @@ class _RechargeCenterScreenState extends State<RechargeCenterScreen> {
   int selectedAmount = -1; // 选中的充值金额索引
   final AppleAuthService _authService = AppleAuthService();
   final DataService _dataService = DataService.getInstance();
+  final InAppPurchaseService _iapService = InAppPurchaseService.instance;
   bool _isLoggedIn = false;
   bool _isPurchasing = false;
   
@@ -35,6 +38,7 @@ class _RechargeCenterScreenState extends State<RechargeCenterScreen> {
     super.initState();
     _checkLoginStatus();
     _updateCurrentCoins();
+    _setupPurchaseCallbacks();
   }
 
   // 检查登录状态
@@ -61,7 +65,16 @@ class _RechargeCenterScreenState extends State<RechargeCenterScreen> {
 
 
 
-  // 购买商品（内购功能已移除）
+  // 设置购买回调
+  void _setupPurchaseCallbacks() {
+    _iapService.onPurchaseSuccess = _onPurchaseSuccess;
+    _iapService.onPurchaseFailed = _onPurchaseFailed;
+    _iapService.onPurchasePending = _onPurchasePending;
+    _iapService.onPurchaseCanceled = _onPurchaseCanceled;
+    _iapService.onError = _onPurchaseError;
+  }
+
+  // 购买商品
   Future<void> _purchaseProduct(String productId) async {
     if (!_isLoggedIn) {
       _showLoginDialog();
@@ -72,27 +85,106 @@ class _RechargeCenterScreenState extends State<RechargeCenterScreen> {
       return;
     }
 
+    if (!_iapService.isAvailable) {
+      _showErrorDialog('内购服务不可用，请稍后重试');
+      return;
+    }
+
     setState(() {
       _isPurchasing = true;
     });
 
-    // 短暂延迟以显示加载状态
-    await Future.delayed(const Duration(milliseconds: 500));
+    try {
+      final success = await _iapService.purchaseProduct(productId);
+      if (!success) {
+        setState(() {
+          _isPurchasing = false;
+        });
+        _showErrorDialog('启动购买失败，请重试');
+      }
+      // 购买结果会在回调中处理，这里不需要手动设置_isPurchasing = false
+    } catch (e) {
+      setState(() {
+        _isPurchasing = false;
+      });
+      _showErrorDialog('购买出现异常: $e');
+    }
+  }
 
+  // 购买成功回调
+  void _onPurchaseSuccess(PurchaseDetails purchaseDetails) {
     if (mounted) {
       setState(() {
         _isPurchasing = false;
       });
-      
-      // 显示内购服务不可用的错误
-      _showErrorDialog(
-        '内购服务不可用\n\n'
-        '错误详情：\n'
-        '• 内购服务未初始化\n'
-        '• 商品信息不可用\n'
-        '• 需要重新集成内购功能\n\n'
-        '商品ID: $productId'
+
+      // 根据购买的商品ID更新金币
+      final productInfo = rechargeOptions.firstWhere(
+        (option) => option['product_id'] == purchaseDetails.productID,
+        orElse: () => {},
       );
+
+      if (productInfo.isNotEmpty) {
+        final coins = productInfo['coins'] as int;
+        _dataService.addCoins(coins);
+        _updateCurrentCoins();
+        
+        _showSuccessDialog('充值成功！获得 $coins 金币');
+        
+        // 延迟返回上一页面
+        Future.delayed(const Duration(seconds: 2), () {
+          if (mounted) {
+            Navigator.pop(context, true);
+          }
+        });
+      }
+    }
+  }
+
+  // 购买失败回调
+  void _onPurchaseFailed(PurchaseDetails purchaseDetails) {
+    if (mounted) {
+      setState(() {
+        _isPurchasing = false;
+      });
+      _showErrorDialog('购买失败: ${purchaseDetails.error?.message ?? "未知错误"}');
+    }
+  }
+
+  // 购买等待回调
+  void _onPurchasePending(PurchaseDetails purchaseDetails) {
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('正在处理支付，请稍候...'),
+          duration: Duration(seconds: 3),
+        ),
+      );
+    }
+  }
+
+  // 购买取消回调
+  void _onPurchaseCanceled(PurchaseDetails purchaseDetails) {
+    if (mounted) {
+      setState(() {
+        _isPurchasing = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('支付已取消'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+    }
+  }
+
+  // 购买错误回调
+  void _onPurchaseError(String error) {
+    if (mounted) {
+      setState(() {
+        _isPurchasing = false;
+      });
+      _showErrorDialog(error);
     }
   }
 

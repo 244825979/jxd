@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:in_app_purchase/in_app_purchase.dart';
 import '../../constants/app_colors.dart';
 import '../../widgets/common/custom_card.dart';
 import '../../services/apple_auth_service.dart';
 import '../../services/data_service.dart';
+import '../../services/in_app_purchase_service.dart';
 import 'account_management_screen.dart';
 
 class VipSubscriptionScreen extends StatefulWidget {
@@ -16,6 +18,7 @@ class _VipSubscriptionScreenState extends State<VipSubscriptionScreen> {
   int selectedPlan = -1; // 选中的VIP套餐索引
   final AppleAuthService _authService = AppleAuthService();
   final DataService _dataService = DataService.getInstance();
+  final InAppPurchaseService _iapService = InAppPurchaseService.instance;
   bool _isLoggedIn = false;
   bool _isPurchasing = false;
   
@@ -23,21 +26,21 @@ class _VipSubscriptionScreenState extends State<VipSubscriptionScreen> {
     {
       'price': 68,
       'duration': '1个月',
-      'product_id': 'lelelvip68',
+      'product_id': 'lelelevip68',
       'name': '1个月会员服务',
       'popular': false,
     },
     {
       'price': 168,
       'duration': '3个月',
-      'product_id': 'lelelvip168',
+      'product_id': 'lelelevip168',
       'name': '3个月会员服务',
       'popular': true,
     },
     {
       'price': 399,
       'duration': '12个月',
-      'product_id': 'lelelvip399',
+      'product_id': 'lelelevip399',
       'name': '12个月会员服务',
       'popular': false,
     },
@@ -47,6 +50,7 @@ class _VipSubscriptionScreenState extends State<VipSubscriptionScreen> {
   void initState() {
     super.initState();
     _checkLoginStatus();
+    _setupPurchaseCallbacks();
   }
 
   // 检查登录状态
@@ -61,28 +65,18 @@ class _VipSubscriptionScreenState extends State<VipSubscriptionScreen> {
 
 
 
-  // VIP购买成功处理
-  void _onVipPurchaseSuccess() {
-    if (mounted) {
-      // 显示成功消息
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('VIP开通成功！享受专属特权'),
-          backgroundColor: Colors.green,
-          duration: Duration(seconds: 2),
-        ),
-      );
-      
-      // 延迟一段时间后返回到账户管理页面，并传递成功标识
-      Future.delayed(const Duration(seconds: 1), () {
-        if (mounted) {
-          Navigator.pop(context, true); // 返回true表示VIP开通成功
-        }
-      });
-    }
+
+
+  // 设置购买回调
+  void _setupPurchaseCallbacks() {
+    _iapService.onPurchaseSuccess = _onPurchaseSuccess;
+    _iapService.onPurchaseFailed = _onPurchaseFailed;
+    _iapService.onPurchasePending = _onPurchasePending;
+    _iapService.onPurchaseCanceled = _onPurchaseCanceled;
+    _iapService.onError = _onPurchaseError;
   }
 
-  // 购买VIP（内购功能已移除）
+  // 购买VIP
   Future<void> _purchaseVip(String productId) async {
     if (!_isLoggedIn) {
       _showLoginDialog();
@@ -93,27 +87,105 @@ class _VipSubscriptionScreenState extends State<VipSubscriptionScreen> {
       return;
     }
 
+    if (!_iapService.isAvailable) {
+      _showErrorDialog('内购服务不可用，请稍后重试');
+      return;
+    }
+
     setState(() {
       _isPurchasing = true;
     });
 
-    // 短暂延迟以显示加载状态
-    await Future.delayed(const Duration(milliseconds: 500));
+    try {
+      final success = await _iapService.purchaseSubscription(productId);
+      if (!success) {
+        setState(() {
+          _isPurchasing = false;
+        });
+        _showErrorDialog('启动VIP购买失败，请重试');
+      }
+      // 购买结果会在回调中处理，这里不需要手动设置_isPurchasing = false
+    } catch (e) {
+      setState(() {
+        _isPurchasing = false;
+      });
+      _showErrorDialog('VIP购买出现异常: $e');
+    }
+  }
 
+  // 购买成功回调
+  void _onPurchaseSuccess(PurchaseDetails purchaseDetails) {
     if (mounted) {
       setState(() {
         _isPurchasing = false;
       });
-      
-      // 显示内购服务不可用的错误
-      _showErrorDialog(
-        'VIP订阅服务不可用\n\n'
-        '错误详情：\n'
-        '• 内购服务未初始化\n'
-        '• VIP商品信息不可用\n'
-        '• 订阅功能需要重新集成\n\n'
-        '产品ID: $productId'
+
+      // 根据购买的商品ID更新VIP状态
+      final productInfo = vipPlans.firstWhere(
+        (plan) => plan['product_id'] == purchaseDetails.productID,
+        orElse: () => {},
       );
+
+      if (productInfo.isNotEmpty) {
+        final duration = productInfo['duration'] as String;
+        _dataService.activateVip();
+        
+        _showSuccessDialog('VIP开通成功！已开通$duration会员');
+        
+        // 延迟返回上一页面
+        Future.delayed(const Duration(seconds: 2), () {
+          if (mounted) {
+            Navigator.pop(context, true);
+          }
+        });
+      }
+    }
+  }
+
+  // 购买失败回调
+  void _onPurchaseFailed(PurchaseDetails purchaseDetails) {
+    if (mounted) {
+      setState(() {
+        _isPurchasing = false;
+      });
+      _showErrorDialog('VIP购买失败: ${purchaseDetails.error?.message ?? "未知错误"}');
+    }
+  }
+
+  // 购买等待回调
+  void _onPurchasePending(PurchaseDetails purchaseDetails) {
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('正在处理VIP订阅支付，请稍候...'),
+          duration: Duration(seconds: 3),
+        ),
+      );
+    }
+  }
+
+  // 购买取消回调
+  void _onPurchaseCanceled(PurchaseDetails purchaseDetails) {
+    if (mounted) {
+      setState(() {
+        _isPurchasing = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('VIP订阅支付已取消'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+    }
+  }
+
+  // 购买错误回调
+  void _onPurchaseError(String error) {
+    if (mounted) {
+      setState(() {
+        _isPurchasing = false;
+      });
+      _showErrorDialog(error);
     }
   }
 

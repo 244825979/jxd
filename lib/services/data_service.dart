@@ -1183,6 +1183,20 @@ class DataService {
     _currentUser = _currentUser.copyWith(vipExpireDate: expireDate);
   }
 
+  // 添加金币（充值用）
+  void addCoins(int coins) {
+    final currentCoins = _currentUser.coins;
+    _currentUser = _currentUser.copyWith(coins: currentCoins + coins);
+  }
+
+  // 激活VIP（订阅用）
+  void activateVip() {
+    _currentUser = _currentUser.copyWith(
+      isVip: true,
+      vipExpireDate: DateTime.now().add(const Duration(days: 30)), // 默认30天
+    );
+  }
+
   // 获取用户数据
   UserData getUserData() {
     return _userData;
