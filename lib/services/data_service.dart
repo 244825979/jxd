@@ -9,6 +9,7 @@ import '../models/achievement.dart';
 import '../constants/app_images.dart';
 import '../models/feedback.dart' as feedback_model;
 import 'ai_service.dart';
+import 'storage_service.dart';
 
 class DataService {
   static DataService? _instance;
@@ -1171,22 +1172,30 @@ class DataService {
   // 切换VIP状态
   void setVipStatus(bool isVip) {
     _currentUser = _currentUser.copyWith(isVip: isVip);
+    // 保存到本地
+    _saveCurrentUserToLocal();
   }
 
   // 更新用户金币
   void updateUserCoins(int coins) {
     _currentUser = _currentUser.copyWith(coins: coins);
+    // 保存到本地
+    _saveCurrentUserToLocal();
   }
 
   // 更新用户VIP到期时间
   void updateUserVipExpireDate(DateTime? expireDate) {
     _currentUser = _currentUser.copyWith(vipExpireDate: expireDate);
+    // 保存到本地
+    _saveCurrentUserToLocal();
   }
 
   // 添加金币（充值用）
   void addCoins(int coins) {
     final currentCoins = _currentUser.coins;
     _currentUser = _currentUser.copyWith(coins: currentCoins + coins);
+    // 保存到本地
+    _saveCurrentUserToLocal();
   }
 
   // 激活VIP（订阅用）
@@ -1195,6 +1204,79 @@ class DataService {
       isVip: true,
       vipExpireDate: DateTime.now().add(const Duration(days: 30)), // 默认30天
     );
+    // 保存到本地
+    _saveCurrentUserToLocal();
+  }
+
+  // 重置用户数据（退出登录时调用）
+  void resetUserData() {
+    _currentUser = User(
+      id: 'guest',
+      nickname: '游客',
+      avatar: 'assets/images/avatars/user_1.png',
+      coins: 0, // 未登录用户金币为0
+      likeCount: 0,
+      collectionCount: 0,
+      postCount: 0,
+      joinDate: DateTime.now(),
+      mood: '',
+      isVip: false,
+    );
+    // 也可以重置用户数据
+    _userData = UserData();
+  }
+
+  // 完全清除用户数据（注销账户时调用）
+  Future<void> clearAllUserData() async {
+    resetUserData();
+    await StorageService.clearUserBackup();
+  }
+
+  // 登录成功时恢复本地数据
+  Future<void> restoreUserDataOnLogin() async {
+    try {
+      final savedUser = await StorageService.loadUserBackup();
+      if (savedUser != null) {
+        _currentUser = savedUser;
+        print('🔄 已恢复本地用户数据: ${savedUser.nickname}, 金币: ${savedUser.coins}');
+      } else {
+        print('🔄 无本地用户数据，使用默认数据');
+      }
+    } catch (e) {
+      print('❌ 恢复本地用户数据失败: $e');
+      // 发生错误时重置为游客状态
+      resetUserData();
+    }
+  }
+
+  // 保存当前用户数据到本地
+  void _saveCurrentUserToLocal() {
+    StorageService.saveUserBackup(_currentUser).catchError((e) {
+      print('❌ 保存用户数据到本地失败: $e');
+    });
+  }
+
+  // 手动保存用户数据到本地
+  Future<void> saveUserDataToLocal() async {
+    try {
+      await StorageService.saveUserBackup(_currentUser);
+    } catch (e) {
+      print('❌ 手动保存用户数据失败: $e');
+    }
+  }
+
+  // 更新用户信息并保存到本地
+  void updateUserProfile({
+    String? nickname,
+    String? avatar,
+    String? mood,
+  }) {
+    _currentUser = _currentUser.copyWith(
+      nickname: nickname,
+      avatar: avatar,
+      mood: mood,
+    );
+    _saveCurrentUserToLocal();
   }
 
   // 获取用户数据

@@ -48,6 +48,15 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
       final isLoggedIn = await _authService.isLoggedIn();
       final currentUser = await _authService.getCurrentUser();
       
+      // 根据登录状态处理用户数据
+      if (isLoggedIn && currentUser != null) {
+        // 登录成功：恢复本地保存的用户数据
+        await _dataService.restoreUserDataOnLogin();
+      } else {
+        // 未登录：重置为游客状态
+        _dataService.resetUserData();
+      }
+      
       // 获取个人中心的用户数据作为默认昵称和金币
       final profileUser = _dataService.getCurrentUser();
       
@@ -1078,6 +1087,9 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
               try {
                 await _authService.signOut();
                 
+                // 退出登录：重置显示状态但保留本地数据
+                _dataService.resetUserData();
+                
                 // 关闭加载对话框
                 _safeCloseLoadingDialog();
                 
@@ -1093,8 +1105,8 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
                       'avatar': 'assets/images/avatars/user_1.png',
                       'isVip': false,
                       'vipExpireDate': null,
-                      'coins': 1280,
-                      'totalCoins': 5680,
+                      'coins': 0, // 退出登录后金币为0
+                      'totalCoins': 0,
                     };
                   });
                   _showSuccessMessage('已退出登录');
@@ -1215,6 +1227,9 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
                   try {
                     await _authService.deleteAccount();
                     
+                    // 注销账户：完全清除本地和显示数据
+                    await _dataService.clearAllUserData();
+                    
                     // 关闭加载对话框
                     _safeCloseLoadingDialog();
                     
@@ -1230,8 +1245,8 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
                           'avatar': 'assets/images/avatars/user_1.png',
                           'isVip': false,
                           'vipExpireDate': null,
-                          'coins': 1280,
-                          'totalCoins': 5680,
+                          'coins': 0, // 注销账户后金币为0
+                          'totalCoins': 0,
                         };
                       });
                       _showSuccessMessage('账户已注销');

@@ -60,6 +60,14 @@ class _VipSubscriptionScreenState extends State<VipSubscriptionScreen> {
       setState(() {
         _isLoggedIn = isLoggedIn;
       });
+      
+      if (isLoggedIn) {
+        // 登录状态：恢复本地数据
+        await _dataService.restoreUserDataOnLogin();
+      } else {
+        // 未登录：重置为游客状态
+        _dataService.resetUserData();
+      }
     }
   }
 
@@ -210,7 +218,10 @@ class _VipSubscriptionScreenState extends State<VipSubscriptionScreen> {
                   MaterialPageRoute(
                     builder: (context) => const AccountManagementScreen(),
                   ),
-                );
+                ).then((_) {
+                  // 从登录页面返回后重新检查状态
+                  _checkLoginStatus();
+                });
               },
               child: const Text('去登录'),
             ),

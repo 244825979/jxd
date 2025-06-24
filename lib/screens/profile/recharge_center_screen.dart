@@ -48,6 +48,17 @@ class _RechargeCenterScreenState extends State<RechargeCenterScreen> {
       setState(() {
         _isLoggedIn = isLoggedIn;
       });
+      
+      if (isLoggedIn) {
+        // 登录状态：恢复本地数据
+        await _dataService.restoreUserDataOnLogin();
+      } else {
+        // 未登录：重置为游客状态
+        _dataService.resetUserData();
+      }
+      
+      // 更新金币显示
+      _updateCurrentCoins();
     }
   }
 
@@ -209,7 +220,10 @@ class _RechargeCenterScreenState extends State<RechargeCenterScreen> {
                   MaterialPageRoute(
                     builder: (context) => const AccountManagementScreen(),
                   ),
-                );
+                ).then((_) {
+                  // 从登录页面返回后重新检查状态
+                  _checkLoginStatus();
+                });
               },
               child: const Text('去登录'),
             ),
