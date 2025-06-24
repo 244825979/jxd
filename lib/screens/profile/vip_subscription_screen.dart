@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
-import 'package:in_app_purchase/in_app_purchase.dart';
 import '../../constants/app_colors.dart';
 import '../../widgets/common/custom_card.dart';
 import '../../services/apple_auth_service.dart';
-import '../../services/in_app_purchase_service.dart';
 import '../../services/data_service.dart';
 import 'account_management_screen.dart';
 
@@ -18,11 +16,9 @@ class VipSubscriptionScreen extends StatefulWidget {
 class _VipSubscriptionScreenState extends State<VipSubscriptionScreen> {
   int selectedPlan = -1; // 选中的VIP套餐索引
   final AppleAuthService _authService = AppleAuthService();
-  final InAppPurchaseService _inAppPurchaseService = InAppPurchaseService();
   final DataService _dataService = DataService.getInstance();
   bool _isLoggedIn = false;
   bool _isPurchasing = false;
-  List<ProductDetails> _vipProducts = [];
   
   final List<Map<String, dynamic>> vipPlans = [
     {
@@ -52,12 +48,6 @@ class _VipSubscriptionScreenState extends State<VipSubscriptionScreen> {
   void initState() {
     super.initState();
     _checkLoginStatus();
-    _loadVipProducts();
-    
-    // 设置购买成功回调
-    _inAppPurchaseService.setPurchaseSuccessCallback(() {
-      _onVipPurchaseSuccess();
-    });
   }
 
   // 检查登录状态
@@ -70,34 +60,7 @@ class _VipSubscriptionScreenState extends State<VipSubscriptionScreen> {
     }
   }
 
-  // 加载VIP商品
-  Future<void> _loadVipProducts() async {
-    try {
-      if (!_inAppPurchaseService.isAvailable) {
-        print('VIP页面: 内购服务不可用，正在初始化...');
-        final initialized = await _inAppPurchaseService.initialize();
-        if (!initialized) {
-          print('VIP页面: 内购服务初始化失败');
-          return;
-        }
-      }
 
-      final products = _inAppPurchaseService.getVipProducts();
-      print('VIP页面: 加载到 ${products.length} 个VIP商品');
-      
-      for (final product in products) {
-        print('  - ${product.id}: ${product.title} - ${product.price}');
-      }
-      
-      if (mounted) {
-        setState(() {
-          _vipProducts = products;
-        });
-      }
-    } catch (e) {
-      print('VIP页面: 加载VIP商品失败: $e');
-    }
-  }
 
   // VIP购买成功处理
   void _onVipPurchaseSuccess() {
@@ -120,7 +83,7 @@ class _VipSubscriptionScreenState extends State<VipSubscriptionScreen> {
     }
   }
 
-  // 购买VIP
+  // 购买VIP（内购功能已移除）
   Future<void> _purchaseVip(String productId) async {
     if (!_isLoggedIn) {
       _showLoginDialog();
@@ -131,56 +94,27 @@ class _VipSubscriptionScreenState extends State<VipSubscriptionScreen> {
       return;
     }
 
-    // 检查内购服务是否可用
-    if (!_inAppPurchaseService.isAvailable) {
-      _showErrorDialog('内购服务不可用，请检查网络连接后重试');
-      return;
-    }
-
-    // 获取商品详情
-    final productDetails = _inAppPurchaseService.getProductDetails(productId);
-    if (productDetails == null) {
-      // 先尝试重新加载商品信息
-      await _loadVipProducts();
-      final retryProductDetails = _inAppPurchaseService.getProductDetails(productId);
-      if (retryProductDetails == null) {
-        _showErrorDialog('商品信息获取失败(ID: $productId)，请检查网络连接后重试');
-        return;
-      }
-      // 使用重试后的商品详情
-      _proceedWithPurchase(retryProductDetails);
-      return;
-    }
-
-    _proceedWithPurchase(productDetails);
-  }
-
-  // 执行购买流程
-  Future<void> _proceedWithPurchase(ProductDetails productDetails) async {
     setState(() {
       _isPurchasing = true;
     });
 
-    try {
-      final success = await _inAppPurchaseService.buyProduct(productDetails);
+    // 短暂延迟以显示加载状态
+    await Future.delayed(const Duration(milliseconds: 500));
+
+    if (mounted) {
+      setState(() {
+        _isPurchasing = false;
+      });
       
-      if (success) {
-        _showSuccessDialog('VIP开通请求已发送，请完成支付');
-        // 等待一段时间后刷新VIP状态（实际应用中通过购买回调来刷新）
-        Future.delayed(const Duration(seconds: 2), () {
-          // 这里可以刷新用户VIP状态
-        });
-      } else {
-        _showErrorDialog('VIP开通失败，请重试');
-      }
-    } catch (e) {
-      _showErrorDialog('VIP开通出错：$e');
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isPurchasing = false;
-        });
-      }
+      // 显示内购服务不可用的错误
+      _showErrorDialog(
+        'VIP订阅服务不可用\n\n'
+        '错误详情：\n'
+        '• 内购服务未初始化\n'
+        '• VIP商品信息不可用\n'
+        '• 订阅功能需要重新集成\n\n'
+        '产品ID: $productId'
+      );
     }
   }
 
@@ -215,13 +149,13 @@ class _VipSubscriptionScreenState extends State<VipSubscriptionScreen> {
     );
   }
 
-  // 显示成功对话框
+  // 显示信息对话框
   void _showSuccessDialog(String message) {
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: const Text('VIP开通成功'),
+          title: const Text('提示'),
           content: Text(message),
           actions: [
             TextButton(
@@ -650,41 +584,18 @@ class _VipSubscriptionScreenState extends State<VipSubscriptionScreen> {
               ),
             ),
             const SizedBox(height: 8),
-            Text(
-              '内购服务状态: ${_inAppPurchaseService.isAvailable ? "可用" : "不可用"}',
-              style: const TextStyle(
+            const Text(
+              '内购服务状态: 已移除',
+              style: TextStyle(
                 fontSize: 14,
                 color: AppColors.textSecondary,
               ),
             ),
-            Text(
-              '已加载商品数: ${_vipProducts.length}',
-              style: const TextStyle(
+            const Text(
+              '当前使用模拟购买',
+              style: TextStyle(
                 fontSize: 14,
                 color: AppColors.textSecondary,
-              ),
-            ),
-            if (_vipProducts.isNotEmpty)
-              ...(_vipProducts.map((product) => Text(
-                '  - ${product.id}: ${product.title}',
-                style: const TextStyle(
-                  fontSize: 12,
-                  color: AppColors.textSecondary,
-                ),
-              ))),
-            const SizedBox(height: 8),
-            ElevatedButton(
-              onPressed: () async {
-                await _loadVipProducts();
-                setState(() {});
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.orange,
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              ),
-              child: const Text(
-                '重新加载商品',
-                style: TextStyle(color: Colors.white, fontSize: 12),
               ),
             ),
           ],
@@ -695,8 +606,6 @@ class _VipSubscriptionScreenState extends State<VipSubscriptionScreen> {
 
   @override
   void dispose() {
-    // 清理购买成功回调
-    _inAppPurchaseService.setPurchaseSuccessCallback(null);
     super.dispose();
   }
 }  

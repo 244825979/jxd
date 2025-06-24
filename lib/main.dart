@@ -3,7 +3,6 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
 import 'app.dart';
 import 'services/permission_service.dart';
-import 'services/in_app_purchase_service.dart';
 import 'screens/splash_screen.dart';
 
 void main() async {
@@ -77,10 +76,6 @@ class _PermissionWrapperState extends State<PermissionWrapper> {
 
   Future<void> _checkPermissions() async {
     final permissionService = await PermissionService.getInstance();
-    
-    // 初始化内购服务
-    final inAppPurchaseService = InAppPurchaseService();
-    await inAppPurchaseService.initialize();
     
     // 等待构建完成
     WidgetsBinding.instance.addPostFrameCallback((_) async {

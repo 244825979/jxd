@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:in_app_purchase/in_app_purchase.dart';
 import '../../constants/app_colors.dart';
 import '../../widgets/common/custom_card.dart';
 import '../../services/apple_auth_service.dart';
-import '../../services/in_app_purchase_service.dart';
 import '../../services/data_service.dart';
 import 'account_management_screen.dart';
 
@@ -18,11 +16,9 @@ class _RechargeCenterScreenState extends State<RechargeCenterScreen> {
   int currentCoins = 0; // 当前金币
   int selectedAmount = -1; // 选中的充值金额索引
   final AppleAuthService _authService = AppleAuthService();
-  final InAppPurchaseService _inAppPurchaseService = InAppPurchaseService();
   final DataService _dataService = DataService.getInstance();
   bool _isLoggedIn = false;
   bool _isPurchasing = false;
-  List<ProductDetails> _rechargeProducts = [];
   
   final List<Map<String, dynamic>> rechargeOptions = [
     {'price': 12, 'coins': 840, 'product_id': 'lelele_12', 'popular': false},
@@ -38,13 +34,7 @@ class _RechargeCenterScreenState extends State<RechargeCenterScreen> {
   void initState() {
     super.initState();
     _checkLoginStatus();
-    _loadRechargeProducts();
     _updateCurrentCoins();
-    
-    // 设置购买成功回调
-    _inAppPurchaseService.setPurchaseSuccessCallback(() {
-      _onPurchaseSuccess();
-    });
   }
 
   // 检查登录状态
@@ -57,17 +47,7 @@ class _RechargeCenterScreenState extends State<RechargeCenterScreen> {
     }
   }
 
-  // 加载充值商品
-  Future<void> _loadRechargeProducts() async {
-    if (_inAppPurchaseService.isAvailable) {
-      final products = _inAppPurchaseService.getRechargeProducts();
-      if (mounted) {
-        setState(() {
-          _rechargeProducts = products;
-        });
-      }
-    }
-  }
+
 
   // 更新当前金币数
   void _updateCurrentCoins() {
@@ -79,31 +59,12 @@ class _RechargeCenterScreenState extends State<RechargeCenterScreen> {
     }
   }
 
-  // 购买成功处理
+  // 购买成功处理（已废弃 - 内购功能已移除）
   void _onPurchaseSuccess() {
-    if (mounted) {
-      // 更新金币显示
-      _updateCurrentCoins();
-      
-      // 显示成功消息
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('充值成功！金币已到账'),
-          backgroundColor: Colors.green,
-          duration: Duration(seconds: 2),
-        ),
-      );
-      
-      // 延迟一段时间后返回到账户管理页面，并传递成功标识
-      Future.delayed(const Duration(seconds: 1), () {
-        if (mounted) {
-          Navigator.pop(context, true); // 返回true表示充值成功
-        }
-      });
-    }
+    // 此方法不再被调用，因为内购功能已被移除
   }
 
-  // 购买商品
+  // 购买商品（内购功能已移除）
   Future<void> _purchaseProduct(String productId) async {
     if (!_isLoggedIn) {
       _showLoginDialog();
@@ -114,36 +75,27 @@ class _RechargeCenterScreenState extends State<RechargeCenterScreen> {
       return;
     }
 
-    final productDetails = _inAppPurchaseService.getProductDetails(productId);
-    if (productDetails == null) {
-      _showErrorDialog('商品信息获取失败，请稍后再试');
-      return;
-    }
-
     setState(() {
       _isPurchasing = true;
     });
 
-    try {
-      final success = await _inAppPurchaseService.buyProduct(productDetails);
+    // 短暂延迟以显示加载状态
+    await Future.delayed(const Duration(milliseconds: 500));
+
+    if (mounted) {
+      setState(() {
+        _isPurchasing = false;
+      });
       
-      if (success) {
-        _showSuccessDialog('购买请求已发送，请完成支付');
-        // 等待一段时间后刷新金币数（实际应用中通过购买回调来刷新）
-        Future.delayed(const Duration(seconds: 2), () {
-          _updateCurrentCoins();
-        });
-      } else {
-        _showErrorDialog('购买失败，请重试');
-      }
-    } catch (e) {
-      _showErrorDialog('购买出错：$e');
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isPurchasing = false;
-        });
-      }
+      // 显示内购服务不可用的错误
+      _showErrorDialog(
+        '内购服务不可用\n\n'
+        '错误详情：\n'
+        '• 内购服务未初始化\n'
+        '• 商品信息不可用\n'
+        '• 需要重新集成内购功能\n\n'
+        '商品ID: $productId'
+      );
     }
   }
 
@@ -178,13 +130,13 @@ class _RechargeCenterScreenState extends State<RechargeCenterScreen> {
     );
   }
 
-  // 显示成功对话框
+  // 显示信息对话框
   void _showSuccessDialog(String message) {
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: const Text('充值成功'),
+          title: const Text('提示'),
           content: Text(message),
           actions: [
             TextButton(
@@ -572,8 +524,6 @@ class _RechargeCenterScreenState extends State<RechargeCenterScreen> {
 
   @override
   void dispose() {
-    // 清理购买成功回调
-    _inAppPurchaseService.setPurchaseSuccessCallback(null);
     super.dispose();
   }
 } 
