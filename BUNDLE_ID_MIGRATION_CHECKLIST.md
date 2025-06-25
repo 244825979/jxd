@@ -70,7 +70,7 @@
 - [x] Runner.entitlements - Apple Sign In配置正确
 - [x] 内购商品ID已更新为正式商品ID
 - [x] 无硬编码Bundle ID引用
-- [x] 网络权限配置完整（Apple登录需要）
+- [x] 隐私权限配置正确（已移除不必要的用户追踪权限）
 
 #### 版本信息
 - [ ] 更新CFBundleShortVersionString版本号（当前：2.0.3）
