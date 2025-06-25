@@ -25,6 +25,8 @@ class _RechargeCenterScreenState extends State<RechargeCenterScreen> {
   bool _isPurchasing = false;
   
   final List<Map<String, dynamic>> rechargeOptions = [
+    {'price': 6, 'coins': 510, 'product_id': 'pack_coin_ios_6', 'name': '6元金币礼包', 'popular': false},
+    {'price': 8, 'coins': 680, 'product_id': 'pack_coin_ios_8', 'name': '8元金币礼包', 'popular': false},
     {'price': 12, 'coins': 840, 'product_id': 'pack_coin_ios_12', 'name': '12元金币礼包', 'popular': false},
     {'price': 38, 'coins': 2660, 'product_id': 'pack_coin_ios_38', 'name': '38元金币礼包', 'popular': false},
     {'price': 68, 'coins': 4760, 'product_id': 'pack_coin_ios_68', 'name': '68元金币礼包', 'popular': true},

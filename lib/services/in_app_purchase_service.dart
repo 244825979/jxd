@@ -19,6 +19,8 @@ class InAppPurchaseService {
   
   // 充值商品ID
   static const Set<String> _rechargeProductIds = {
+    'pack_coin_ios_6',
+    'pack_coin_ios_8',
     'pack_coin_ios_12',
     'pack_coin_ios_38',
     'pack_coin_ios_68',
@@ -30,6 +32,7 @@ class InAppPurchaseService {
   
   // VIP商品ID
   static const Set<String> _vipProductIds = {
+    'pack_vip_38',
     'pack_vip_68',
     'pack_vip_168',
     'pack_vip_399',

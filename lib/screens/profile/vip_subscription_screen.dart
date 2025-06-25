@@ -25,6 +25,13 @@ class _VipSubscriptionScreenState extends State<VipSubscriptionScreen> {
   
   final List<Map<String, dynamic>> vipPlans = [
     {
+      'price': 38,
+      'duration': '1个月',
+      'product_id': 'pack_vip_38',
+      'name': '1个月会员服务 尝鲜',
+      'popular': false,
+    },
+    {
       'price': 68,
       'duration': '1个月',
       'product_id': 'pack_vip_68',
