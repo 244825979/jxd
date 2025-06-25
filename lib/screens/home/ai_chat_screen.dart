@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import '../../constants/app_colors.dart';
@@ -32,11 +33,11 @@ class _AIChatScreenState extends State<AIChatScreen> {
     super.initState();
     _dataService = DataService.getInstance();
     _authService = AppleAuthService();
-    _currentUser = _dataService.getCurrentUser();
-    _messages = _dataService.getAIMessages();
     
-    // 移除自动登录检查，避免触发Apple登录弹窗
-    _isLoggedIn = false; // 默认未登录状态
+    // 使用新的登录状态管理
+    _checkLoginStatus();
+    
+    _messages = _dataService.getAIMessages();
     
     // 监听输入框变化，用于更新发送按钮状态
     _messageController.addListener(() {
@@ -44,13 +45,40 @@ class _AIChatScreenState extends State<AIChatScreen> {
     });
   }
 
-  // 检查登录状态 - 从DataService获取
-  void _checkLoginStatus() {
-    _isLoggedIn = _dataService.isLoggedIn();
-    _currentUser = _dataService.getCurrentUser();
-    
-    if (mounted) {
-      setState(() {});
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // 页面重新进入时检查登录状态
+    _checkLoginStatus();
+  }
+
+  // 检查登录状态 - 使用新的登录状态管理
+  void _checkLoginStatus() async {
+    try {
+      // 检查Apple登录状态和DataService登录状态
+      final isAppleLoggedIn = await _authService.isLoggedIn();
+      final isDataServiceLoggedIn = _dataService.isLoggedIn();
+      
+      // 两个都为true才认为是真正登录
+      final newLoginStatus = isAppleLoggedIn && isDataServiceLoggedIn;
+      
+      debugPrint('🤖 AI聊天页面登录状态检查: Apple=$isAppleLoggedIn, DataService=$isDataServiceLoggedIn, 最终=$newLoginStatus');
+      
+      if (mounted) {
+        setState(() {
+          _isLoggedIn = newLoginStatus;
+          _currentUser = _dataService.getCurrentUser();
+        });
+      }
+    } catch (e) {
+      debugPrint('❌ AI聊天页面检查登录状态失败: $e');
+      // 出错时使用DataService的状态
+      if (mounted) {
+        setState(() {
+          _isLoggedIn = _dataService.isLoggedIn();
+          _currentUser = _dataService.getCurrentUser();
+        });
+      }
     }
   }
 

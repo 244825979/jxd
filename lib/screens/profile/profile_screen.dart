@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import '../../constants/app_colors.dart';
 import '../../constants/app_strings.dart';
 import '../../services/storage_service.dart';
 import '../../services/data_service.dart';
+import '../../services/apple_auth_service.dart';
 import '../../models/user.dart';
 import '../../widgets/common/custom_card.dart';
 import '../../widgets/common/app_logo.dart';
@@ -32,6 +34,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   bool _isInitialized = false;
   late User _currentUser;
   late DataService _dataService;
+  late AppleAuthService _authService;
   bool _isLoggedIn = false; // 添加登录状态标记
 
   @override
@@ -40,14 +43,149 @@ class _ProfileScreenState extends State<ProfileScreen> {
     _initializeServices();
   }
 
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // 页面重新进入时简单刷新状态
+    if (_isInitialized) {
+      _refreshUserState();
+    }
+  }
+
+  // 简单刷新用户状态（从DataService获取最新状态）
+  void _refreshUserState() {
+    final isLoggedIn = _dataService.isLoggedIn();
+    final currentUser = _dataService.getCurrentUser();
+    
+    if (mounted && (_isLoggedIn != isLoggedIn || _currentUser.id != currentUser.id)) {
+      setState(() {
+        _isLoggedIn = isLoggedIn;
+        _currentUser = currentUser;
+      });
+      debugPrint('🔄 Profile页面状态已刷新: 登录状态=$_isLoggedIn, 昵称=${_currentUser.nickname}');
+    }
+  }
+
   Future<void> _initializeServices() async {
     await StorageService.getInstance();
     _dataService = DataService.getInstance();
-    _currentUser = _dataService.getCurrentUser();
-    _isLoggedIn = _dataService.isLoggedIn(); // 检查登录状态
+    _authService = AppleAuthService();
+    
+    // 初始化时检查登录状态并同步数据
+    await _checkLoginStatusAndSyncData();
+    
     setState(() {
       _isInitialized = true;
     });
+  }
+
+  // 检查登录状态并同步用户数据
+  Future<void> _checkLoginStatusAndSyncData() async {
+    try {
+      debugPrint('🔍 Profile页面：开始检查登录状态...');
+      
+      // 检查Apple登录状态
+      final isAppleLoggedIn = await _authService.isLoggedIn();
+      final isDataServiceLoggedIn = _dataService.isLoggedIn();
+      
+      debugPrint('🔍 Apple登录状态: $isAppleLoggedIn');
+      debugPrint('🔍 DataService登录状态: $isDataServiceLoggedIn');
+      
+      _isLoggedIn = isAppleLoggedIn && isDataServiceLoggedIn;
+      
+      // 如果Apple已登录但DataService未同步，则同步数据
+      if (isAppleLoggedIn && !isDataServiceLoggedIn) {
+        debugPrint('🔄 检测到Apple已登录但数据未同步，开始同步...');
+        await _syncAppleUserData();
+      }
+      
+      // 如果Apple已登录，确保用户数据是最新的
+      if (isAppleLoggedIn) {
+        await _refreshUserDataFromApple();
+      }
+      
+      // 更新当前用户数据
+      _currentUser = _dataService.getCurrentUser();
+      
+      if (mounted) {
+        setState(() {});
+      }
+      
+      debugPrint('🏁 Profile页面：登录状态检查完成，最终状态: $_isLoggedIn');
+      debugPrint('👤 当前用户昵称: ${_currentUser.nickname}');
+      debugPrint('💎 VIP状态: ${_currentUser.isVip}');
+      
+    } catch (e) {
+      debugPrint('❌ Profile页面检查登录状态失败: $e');
+      // 出错时使用DataService的状态
+      _isLoggedIn = _dataService.isLoggedIn();
+      _currentUser = _dataService.getCurrentUser();
+      if (mounted) {
+        setState(() {});
+      }
+    }
+  }
+
+  // 同步Apple用户数据到DataService
+  Future<void> _syncAppleUserData() async {
+    try {
+      final appleUser = await _authService.getCurrentUser();
+      if (appleUser != null) {
+        debugPrint('📥 开始同步Apple用户数据...');
+        
+        // 设置登录状态
+        _dataService.setLoginStatus(
+          true,
+          email: appleUser.email,
+          nickname: appleUser.displayName,
+        );
+        
+        // 生成随机头像（如果没有的话）
+        final currentUser = _dataService.getCurrentUser();
+        if (currentUser.avatar.contains('user_1.png')) {
+          final random = DateTime.now().millisecondsSinceEpoch % 30 + 1;
+          final avatarPath = 'assets/images/avatars/user_$random.png';
+          
+          final updatedUser = currentUser.copyWith(
+            nickname: appleUser.displayName,
+            email: appleUser.email,
+            avatar: avatarPath,
+          );
+          
+          _dataService.setCurrentUser(updatedUser);
+        }
+        
+        debugPrint('✅ Apple用户数据同步完成');
+      }
+    } catch (e) {
+      debugPrint('❌ 同步Apple用户数据失败: $e');
+    }
+  }
+
+  // 从Apple刷新用户数据
+  Future<void> _refreshUserDataFromApple() async {
+    try {
+      final appleUser = await _authService.getCurrentUser();
+      if (appleUser != null) {
+        final currentUser = _dataService.getCurrentUser();
+        
+        // 只有昵称或邮箱发生变化时才更新
+        if (currentUser.nickname != appleUser.displayName || 
+            currentUser.email != appleUser.email) {
+          debugPrint('🔄 检测到Apple用户数据变化，更新本地数据...');
+          
+          final updatedUser = currentUser.copyWith(
+            nickname: appleUser.displayName,
+            email: appleUser.email,
+          );
+          
+          _dataService.setCurrentUser(updatedUser);
+          debugPrint('✅ 用户数据已更新');
+        }
+      }
+    } catch (e) {
+      debugPrint('❌ 刷新Apple用户数据失败: $e');
+    }
   }
 
   @override

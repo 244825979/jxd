@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:in_app_purchase/in_app_purchase.dart';
 import '../../constants/app_colors.dart';
 import '../../widgets/common/custom_card.dart';
@@ -36,20 +37,65 @@ class _RechargeCenterScreenState extends State<RechargeCenterScreen> {
   @override
   void initState() {
     super.initState();
-    // 移除自动登录检查，避免触发Apple登录弹窗
-    _isLoggedIn = false; // 默认未登录状态
-    _updateCurrentCoins();
     _setupPurchaseCallbacks();
+    // 检查登录状态
+    _checkLoginStatus();
+    _updateCurrentCoins();
+    // 检查内购服务状态
+    _checkInAppPurchaseService();
   }
 
-  // 检查登录状态 - 从DataService获取
-  void _checkLoginStatus() {
-    _isLoggedIn = _dataService.isLoggedIn();
-    
-    if (mounted) {
-      setState(() {});
-      // 更新金币显示
-      _updateCurrentCoins();
+  // 检查内购服务状态
+  void _checkInAppPurchaseService() async {
+    try {
+      if (!_iapService.isAvailable) {
+        debugPrint('⚠️ 内购服务不可用，尝试重新初始化...');
+        final success = await _iapService.initialize();
+        debugPrint('内购服务重新初始化${success ? "成功" : "失败"}');
+        
+        if (mounted) {
+          setState(() {});
+        }
+      } else {
+        debugPrint('✅ 内购服务可用');
+        debugPrint('📦 已加载${_iapService.products.length}个商品');
+        for (final product in _iapService.products) {
+          debugPrint('商品: ${product.id} - ${product.title} - ${product.price}');
+        }
+      }
+    } catch (e) {
+      debugPrint('❌ 检查内购服务状态失败: $e');
+    }
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // 页面重新进入时检查登录状态
+    _checkLoginStatus();
+  }
+
+  // 检查登录状态 - 异步检查Apple登录状态
+  void _checkLoginStatus() async {
+    try {
+      final isAppleLoggedIn = await _authService.isLoggedIn();
+      final isDataServiceLoggedIn = _dataService.isLoggedIn();
+      
+      _isLoggedIn = isAppleLoggedIn && isDataServiceLoggedIn;
+      
+      if (mounted) {
+        setState(() {});
+        // 更新金币显示
+        _updateCurrentCoins();
+      }
+    } catch (e) {
+      debugPrint('检查登录状态失败: $e');
+      // 出错时使用DataService的状态
+      _isLoggedIn = _dataService.isLoggedIn();
+      if (mounted) {
+        setState(() {});
+        _updateCurrentCoins();
+      }
     }
   }
 

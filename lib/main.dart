@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'app.dart';
 import 'services/permission_service.dart';
 import 'services/in_app_purchase_service.dart';
+import 'services/app_initialization_service.dart';
 import 'screens/splash_screen.dart';
 
 void main() async {
@@ -78,12 +79,20 @@ class _PermissionWrapperState extends State<PermissionWrapper> {
   Future<void> _checkPermissions() async {
     final permissionService = await PermissionService.getInstance();
     
-    // 暂时禁用内购服务初始化，避免触发Apple登录
-    // try {
-    //   await InAppPurchaseService.instance.initialize();
-    // } catch (e) {
-    //   debugPrint('内购服务初始化失败: $e');
-    // }
+    // 初始化应用（检查登录状态并同步数据）
+    try {
+      await AppInitializationService().initialize();
+    } catch (e) {
+      debugPrint('应用初始化失败: $e');
+    }
+    
+    // 初始化内购服务
+    try {
+      final success = await InAppPurchaseService.instance.initialize();
+      debugPrint('内购服务初始化${success ? "成功" : "失败"}');
+    } catch (e) {
+      debugPrint('内购服务初始化失败: $e');
+    }
     
     // 等待构建完成
     WidgetsBinding.instance.addPostFrameCallback((_) async {

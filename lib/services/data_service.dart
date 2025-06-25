@@ -1328,6 +1328,12 @@ class DataService {
     _saveCurrentUserToLocal();
   }
 
+  // 设置当前用户对象
+  void setCurrentUser(User user) {
+    _currentUser = user;
+    _saveCurrentUserToLocal();
+  }
+
   // 获取用户数据
   UserData getUserData() {
     return _userData;

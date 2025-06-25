@@ -4,6 +4,7 @@ import '../../constants/app_colors.dart';
 import '../../widgets/common/custom_card.dart';
 import '../../services/apple_auth_service.dart';
 import '../../services/data_service.dart';
+import '../../services/app_initialization_service.dart';
 import 'recharge_center_screen.dart';
 import 'vip_subscription_screen.dart';
 
@@ -39,29 +40,86 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
   void initState() {
     super.initState();
     _dataService = DataService.getInstance();
-    _initializeUserData();
+    _initializeUserData(); // 现在是异步方法，但在initState中不能await
   }
 
   // 初始化用户数据
-  void _initializeUserData() {
-    // 从DataService获取当前登录状态
-    _isLoggedIn = _dataService.isLoggedIn();
-    _isLoading = false;
-    
-    final currentUser = _dataService.getCurrentUser();
-    
-    // 更新用户信息显示
-    userInfo.addAll({
-      'nickname': currentUser.nickname,
-      'coins': currentUser.coins,
-      'isVip': currentUser.isVip,
-      'vipExpireDate': currentUser.vipExpireDate,
-      'email': currentUser.email,
-      'joinDate': currentUser.joinDate.toString().split(' ')[0],
-    });
+  Future<void> _initializeUserData() async {
+    try {
+      // 检查Apple登录状态
+      final isAppleLoggedIn = await _authService.isLoggedIn();
+      final appleUser = await _authService.getCurrentUser();
+      
+      // 检查DataService的登录状态
+      final isDataServiceLoggedIn = _dataService.isLoggedIn();
+      
+      // 同步登录状态：如果Apple已登录但DataService未登录，则同步状态
+      if (isAppleLoggedIn && appleUser != null && !isDataServiceLoggedIn) {
+        // Apple已登录，同步到DataService
+        _dataService.setLoginStatus(
+          true,
+          email: appleUser.email,
+          nickname: appleUser.displayName,
+        );
+        
+        // 更新用户的其他信息
+        final currentUser = _dataService.getCurrentUser();
+        final updatedUser = currentUser.copyWith(
+          nickname: appleUser.displayName,
+          email: appleUser.email,
+        );
+        _dataService.setCurrentUser(updatedUser);
+      }
+      
+      // 最终状态以Apple登录为准
+      _isLoggedIn = isAppleLoggedIn;
+      _currentUser = appleUser;
+      
+      final currentUser = _dataService.getCurrentUser();
+      
+      // 更新用户信息显示
+      userInfo.clear();
+      userInfo.addAll({
+        'nickname': _isLoggedIn && appleUser != null ? appleUser.displayName : currentUser.nickname,
+        'coins': currentUser.coins,
+        'isVip': currentUser.isVip,
+        'vipExpireDate': currentUser.vipExpireDate,
+        'email': _isLoggedIn && appleUser != null ? appleUser.email : currentUser.email,
+        'joinDate': _isLoggedIn && appleUser != null 
+          ? appleUser.loginTime.toString().split(' ')[0]
+          : currentUser.joinDate.toString().split(' ')[0],
+        'isVerified': _isLoggedIn && appleUser != null ? appleUser.isVerified : false,
+      });
 
-    if (mounted) {
-      setState(() {});
+      _isLoading = false;
+      
+      if (mounted) {
+        setState(() {});
+      }
+      
+    } catch (e) {
+      debugPrint('初始化用户数据失败: $e');
+      
+      // 出错时使用DataService的状态
+      _isLoggedIn = _dataService.isLoggedIn();
+      final currentUser = _dataService.getCurrentUser();
+      
+      userInfo.clear();
+      userInfo.addAll({
+        'nickname': currentUser.nickname,
+        'coins': currentUser.coins,
+        'isVip': currentUser.isVip,
+        'vipExpireDate': currentUser.vipExpireDate,
+        'email': currentUser.email,
+        'joinDate': currentUser.joinDate.toString().split(' ')[0],
+        'isVerified': false,
+      });
+      
+      _isLoading = false;
+      
+      if (mounted) {
+        setState(() {});
+      }
     }
   }
 
@@ -762,34 +820,54 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
 
   // === 事件处理方法 ===
 
-  // 模拟登录处理
+  // Apple登录处理
   Future<void> _handleAppleLogin() async {
-    // 显示加载提示
-    _showLoadingDialog('正在登录...');
-
     try {
-      // 模拟登录延迟
-      await Future.delayed(const Duration(seconds: 1));
-      
-      // 模拟登录成功，设置登录状态
-      final email = 'user${DateTime.now().millisecondsSinceEpoch % 10000}@example.com';
-      final nickname = '心灵旅者${DateTime.now().millisecondsSinceEpoch % 10000}';
-      
-      _dataService.setLoginStatus(true, email: email, nickname: nickname);
+      // 显示加载提示
+      _showLoadingDialog('正在连接Apple服务器...');
+
+      // 检查Apple登录是否可用
+      final isAvailable = await _authService.isAppleSignInAvailable();
+      if (!isAvailable) {
+        _safeCloseLoadingDialog();
+        if (mounted) {
+          _showErrorMessage('此设备不支持Apple登录');
+        }
+        return;
+      }
+
+      // 执行Apple登录
+      final result = await _authService.signInWithApple();
       
       // 关闭加载对话框
       _safeCloseLoadingDialog();
       
-      if (mounted) {
-        // 重新初始化用户数据以反映登录状态
-        _initializeUserData();
-        
-        setState(() {
-          _isLoggedIn = true;
-        });
-        
-        _showSuccessMessage('登录成功，欢迎使用静心岛！');
+      if (!mounted) return;
+
+      // 处理登录结果
+      switch (result.result) {
+        case AppleSignInResult.success:
+          if (result.userInfo != null) {
+            // 登录成功，更新UI状态
+            await _handleLoginSuccess(result.userInfo!);
+          } else {
+            _showErrorMessage('登录成功但获取用户信息失败');
+          }
+          break;
+          
+        case AppleSignInResult.cancelled:
+          // 用户取消登录，不需要显示错误消息
+          break;
+          
+        case AppleSignInResult.failed:
+          _showErrorMessage(result.error ?? '登录失败，请重试');
+          break;
+          
+        case AppleSignInResult.unavailable:
+          _showErrorMessage(result.error ?? '此设备不支持Apple登录');
+          break;
       }
+      
     } catch (e) {
       // 关闭加载对话框
       _safeCloseLoadingDialog();
@@ -797,6 +875,32 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
       if (mounted) {
         _showErrorMessage('登录过程中发生错误: $e');
       }
+    }
+  }
+
+  // 处理登录成功
+  Future<void> _handleLoginSuccess(AppleUserInfo userInfo) async {
+    try {
+      debugPrint('🎉 Apple登录成功');
+      debugPrint('用户昵称: ${userInfo.displayName}');
+      debugPrint('用户邮箱: ${userInfo.email}');
+      
+      // 重新初始化应用状态，确保所有页面的登录状态一致
+      await AppInitializationService().reinitialize();
+      
+      // 重新初始化用户数据以反映登录状态
+      await _initializeUserData();
+      
+      setState(() {
+        _isLoggedIn = true;
+        _currentUser = userInfo;
+      });
+      
+      _showSuccessMessage('登录成功，欢迎使用静心岛！');
+      
+    } catch (e) {
+      debugPrint('处理登录成功时出错: $e');
+      _showErrorMessage('登录成功但数据同步失败，请重试');
     }
   }
 
@@ -1048,7 +1152,10 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
               _showLoadingDialog('正在退出...');
               
               try {
-                // 设置登录状态为false
+                // 调用Apple登录服务的退出方法
+                await _authService.signOut();
+                
+                // 设置登录状态为false（Apple服务已经会调用这个，但为了确保）
                 _dataService.setLoginStatus(false);
                 
                 // 关闭加载对话框
@@ -1056,7 +1163,7 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
                 
                 if (mounted) {
                   // 重新初始化用户数据
-                  _initializeUserData();
+                  await _initializeUserData();
                   
                   setState(() {
                     _isLoggedIn = false;
@@ -1178,6 +1285,9 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
                   _showLoadingDialog('正在注销账户...');
                   
                   try {
+                    // 调用Apple登录服务的删除账户方法
+                    await _authService.deleteAccount();
+                    
                     // 注销账户：完全清除本地和显示数据
                     await _dataService.clearAllUserData();
                     
@@ -1186,7 +1296,7 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
                     
                     if (mounted) {
                       // 重新初始化用户数据
-                      _initializeUserData();
+                      await _initializeUserData();
                       
                       setState(() {
                         _isLoggedIn = false;
