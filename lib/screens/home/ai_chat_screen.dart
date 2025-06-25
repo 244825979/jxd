@@ -35,8 +35,8 @@ class _AIChatScreenState extends State<AIChatScreen> {
     _currentUser = _dataService.getCurrentUser();
     _messages = _dataService.getAIMessages();
     
-    // 检查登录状态
-    _checkLoginStatus();
+    // 移除自动登录检查，避免触发Apple登录弹窗
+    _isLoggedIn = false; // 默认未登录状态
     
     // 监听输入框变化，用于更新发送按钮状态
     _messageController.addListener(() {
@@ -44,28 +44,13 @@ class _AIChatScreenState extends State<AIChatScreen> {
     });
   }
 
-  // 检查登录状态
-  Future<void> _checkLoginStatus() async {
-    final isLoggedIn = await _authService.isLoggedIn();
+  // 检查登录状态 - 从DataService获取
+  void _checkLoginStatus() {
+    _isLoggedIn = _dataService.isLoggedIn();
+    _currentUser = _dataService.getCurrentUser();
+    
     if (mounted) {
-      setState(() {
-        _isLoggedIn = isLoggedIn;
-      });
-      
-      if (isLoggedIn) {
-        // 登录状态：恢复本地数据
-        await _dataService.restoreUserDataOnLogin();
-        _currentUser = _dataService.getCurrentUser();
-      } else {
-        // 未登录状态：重置为游客状态
-        _dataService.resetUserData();
-        _currentUser = _dataService.getCurrentUser();
-      }
-      
-      // 触发UI刷新
-      if (mounted) {
-        setState(() {});
-      }
+      setState(() {});
     }
   }
 

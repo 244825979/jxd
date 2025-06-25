@@ -80,8 +80,8 @@ class InAppPurchaseService {
       // 加载商品信息
       await _loadProducts();
       
-      // 恢复购买（仅在初始化时进行一次）
-      await _restorePurchases();
+      // 移除自动恢复购买，避免触发Apple ID验证弹窗
+      // await _restorePurchases();
       
       return true;
     } catch (e) {

@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'dart:math';
 import 'package:crypto/crypto.dart';
 import 'package:flutter/foundation.dart';
-import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import 'storage_service.dart';
 
 // 用户信息模型
@@ -100,130 +99,20 @@ class AppleAuthService {
     return digest.toString();
   }
 
-  // 检查Apple登录是否可用
+  // 检查Apple登录是否可用 - 现在始终返回false
   Future<bool> isAppleSignInAvailable() async {
-    try {
-      return await SignInWithApple.isAvailable();
-    } catch (e) {
-      return false;
-    }
+    // Apple登录功能已移除
+    return false;
   }
 
-  // 执行Apple登录
+  // 执行Apple登录 - 现在始终返回不可用
   Future<({AppleSignInResult result, AppleUserInfo? userInfo, String? error})> signInWithApple() async {
-    try {
-      // 检查是否支持Apple登录
-      final isAvailable = await isAppleSignInAvailable();
-      
-      if (!isAvailable) {
-        return (
-          result: AppleSignInResult.unavailable,
-          userInfo: null,
-          error: 'Apple登录在此设备上不可用'
-        );
-      }
-
-      // 生成nonce用于安全验证
-      final rawNonce = _generateNonce();
-      final nonce = _sha256ofString(rawNonce);
-
-      // 发起Apple登录请求
-      final credential = await SignInWithApple.getAppleIDCredential(
-        scopes: [
-          AppleIDAuthorizationScopes.email,
-          AppleIDAuthorizationScopes.fullName,
-        ],
-        nonce: nonce,
-      );
-
-
-
-      // 处理用户信息
-      final email = credential.email ?? '';
-      final userId = credential.userIdentifier ?? '';
-      
-      if (userId.isEmpty) {
-        return (
-          result: AppleSignInResult.failed,
-          userInfo: null,
-          error: '获取用户信息失败，请重试'
-        );
-      }
-      
-      final userInfo = AppleUserInfo(
-        userId: userId,
-        email: email,
-        givenName: credential.givenName,
-        familyName: credential.familyName,
-        isVerified: email.isNotEmpty,
-        loginTime: DateTime.now(),
-      );
-
-      // 保存登录信息
-      await _saveUserInfo(userInfo);
-      final storage = await _getStorage();
-      await storage.saveBool('is_logged_in', true);
-
-      return (
-        result: AppleSignInResult.success,
-        userInfo: userInfo,
-        error: null
-      );
-
-    } on SignInWithAppleAuthorizationException catch (e) {
-
-      // 处理Apple特定的异常
-      switch (e.code) {
-        case AuthorizationErrorCode.canceled:
-          return (
-            result: AppleSignInResult.cancelled,
-            userInfo: null,
-            error: '用户取消了登录'
-          );
-        case AuthorizationErrorCode.failed:
-          return (
-            result: AppleSignInResult.failed,
-            userInfo: null,
-            error: '登录验证失败，请重试'
-          );
-        case AuthorizationErrorCode.invalidResponse:
-          return (
-            result: AppleSignInResult.failed,
-            userInfo: null,
-            error: '登录响应无效，请重试'
-          );
-        case AuthorizationErrorCode.notHandled:
-          return (
-            result: AppleSignInResult.failed,
-            userInfo: null,
-            error: '登录请求未处理，请重试'
-          );
-        case AuthorizationErrorCode.unknown:
-        default:
-          return (
-            result: AppleSignInResult.failed,
-            userInfo: null,
-            error: '登录失败，未知错误'
-          );
-      }
-    } catch (e) {
-
-      // 处理其他类型的错误
-      final errorString = e.toString().toLowerCase();
-      if (errorString.contains('canceled') || errorString.contains('cancelled')) {
-        return (
-          result: AppleSignInResult.cancelled,
-          userInfo: null,
-          error: '用户取消了登录'
-        );
-      }
-
-      return (
-        result: AppleSignInResult.failed,
-        userInfo: null,
-        error: '登录过程中发生错误，请重试'
-      );
-    }
+    // Apple登录功能已移除，直接返回不可用状态
+    return (
+      result: AppleSignInResult.unavailable,
+      userInfo: null,
+      error: 'Apple登录功能暂时不可用'
+    );
   }
 
   // 保存用户信息
@@ -249,27 +138,16 @@ class AppleAuthService {
     return '心灵旅者${DateTime.now().millisecondsSinceEpoch % 10000}';
   }
 
-  // 获取当前登录的用户信息
+  // 获取当前登录的用户信息 - 始终返回null（Apple登录已移除）
   Future<AppleUserInfo?> getCurrentUser() async {
-    try {
-      final storage = await _getStorage();
-      final isLoggedIn = await storage.getBool('is_logged_in', defaultValue: false);
-      if (!isLoggedIn) return null;
-
-      final userJson = await storage.getString('apple_user_info');
-      if (userJson == null || userJson.isEmpty) return null;
-
-      final userMap = json.decode(userJson) as Map<String, dynamic>;
-      return AppleUserInfo.fromJson(userMap);
-    } catch (e) {
-      return null;
-    }
+    // Apple登录功能已移除，始终返回null
+    return null;
   }
 
-  // 检查是否已登录
+  // 检查是否已登录 - 始终返回false（Apple登录已移除）
   Future<bool> isLoggedIn() async {
-    final user = await getCurrentUser();
-    return user != null;
+    // Apple登录功能已移除，始终返回false
+    return false;
   }
 
   // 更新用户昵称
@@ -319,30 +197,10 @@ class AppleAuthService {
     }
   }
 
-  // 获取登录凭证状态（用于检查登录是否仍然有效）
+  // 获取登录凭证状态（用于检查登录是否仍然有效）- 现在始终返回false
   Future<bool> checkCredentialState() async {
-    try {
-      final currentUser = await getCurrentUser();
-      if (currentUser == null) return false;
-
-      final credentialState = await SignInWithApple.getCredentialState(
-        currentUser.userId,
-      );
-
-      switch (credentialState) {
-        case CredentialState.authorized:
-          return true;
-        case CredentialState.revoked:
-        case CredentialState.notFound:
-          // 凭证已被撤销或不存在，需要重新登录
-          await signOut();
-          return false;
-        default:
-          return false;
-      }
-    } catch (e) {
-      return false;
-    }
+    // Apple登录功能已移除，始终返回false
+    return false;
   }
 
   // 获取用户统计信息

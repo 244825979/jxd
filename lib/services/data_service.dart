@@ -19,8 +19,27 @@ class DataService {
     if (_instance == null) {
       _instance = DataService._();
       _instance!._initializeCommentsData();
+      _instance!._initializeUserData();
     }
     return _instance!;
+  }
+
+  // 初始化用户数据，从本地存储加载
+  Future<void> _initializeUserData() async {
+    try {
+      final savedUser = await StorageService.loadUserBackup();
+      if (savedUser != null) {
+        _currentUser = savedUser;
+        print('🔄 已加载本地用户数据: ${savedUser.nickname}, 登录状态: ${savedUser.isLoggedIn}');
+      } else {
+        // 没有保存的数据，使用默认游客状态
+        resetUserData();
+        print('🔄 使用默认游客数据');
+      }
+    } catch (e) {
+      print('❌ 加载本地用户数据失败: $e');
+      resetUserData();
+    }
   }
 
   // 静态音频数据
@@ -1221,9 +1240,39 @@ class DataService {
       joinDate: DateTime.now(),
       mood: '',
       isVip: false,
+      isLoggedIn: false, // 设置为未登录状态
+      email: '',
     );
     // 也可以重置用户数据
     _userData = UserData();
+  }
+
+  // 设置登录状态
+  void setLoginStatus(bool isLoggedIn, {String email = '', String? nickname}) {
+    if (isLoggedIn) {
+      // 登录时创建登录用户数据
+      _currentUser = _currentUser.copyWith(
+        id: 'logged_user_${DateTime.now().millisecondsSinceEpoch}',
+        nickname: nickname ?? '心灵旅者',
+        isLoggedIn: true,
+        email: email,
+        joinDate: DateTime.now(),
+      );
+    } else {
+      // 退出登录时重置为游客
+      resetUserData();
+    }
+    _saveCurrentUserToLocal();
+  }
+
+  // 检查登录状态
+  bool isLoggedIn() {
+    return _currentUser.isLoggedIn;
+  }
+
+  // 获取登录用户邮箱
+  String getUserEmail() {
+    return _currentUser.email;
   }
 
   // 完全清除用户数据（注销账户时调用）

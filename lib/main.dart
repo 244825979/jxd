@@ -78,12 +78,12 @@ class _PermissionWrapperState extends State<PermissionWrapper> {
   Future<void> _checkPermissions() async {
     final permissionService = await PermissionService.getInstance();
     
-    // 初始化内购服务
-    try {
-      await InAppPurchaseService.instance.initialize();
-    } catch (e) {
-      debugPrint('内购服务初始化失败: $e');
-    }
+    // 暂时禁用内购服务初始化，避免触发Apple登录
+    // try {
+    //   await InAppPurchaseService.instance.initialize();
+    // } catch (e) {
+    //   debugPrint('内购服务初始化失败: $e');
+    // }
     
     // 等待构建完成
     WidgetsBinding.instance.addPostFrameCallback((_) async {

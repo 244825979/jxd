@@ -49,25 +49,17 @@ class _VipSubscriptionScreenState extends State<VipSubscriptionScreen> {
   @override
   void initState() {
     super.initState();
-    _checkLoginStatus();
+    // 移除自动登录检查，避免触发Apple登录弹窗
+    _isLoggedIn = false; // 默认未登录状态
     _setupPurchaseCallbacks();
   }
 
-  // 检查登录状态
-  Future<void> _checkLoginStatus() async {
-    final isLoggedIn = await _authService.isLoggedIn();
+  // 检查登录状态 - 从DataService获取
+  void _checkLoginStatus() {
+    _isLoggedIn = _dataService.isLoggedIn();
+    
     if (mounted) {
-      setState(() {
-        _isLoggedIn = isLoggedIn;
-      });
-      
-      if (isLoggedIn) {
-        // 登录状态：恢复本地数据
-        await _dataService.restoreUserDataOnLogin();
-      } else {
-        // 未登录：重置为游客状态
-        _dataService.resetUserData();
-      }
+      setState(() {});
     }
   }
 

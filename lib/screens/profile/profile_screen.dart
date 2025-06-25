@@ -32,6 +32,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   bool _isInitialized = false;
   late User _currentUser;
   late DataService _dataService;
+  bool _isLoggedIn = false; // 添加登录状态标记
 
   @override
   void initState() {
@@ -43,6 +44,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     await StorageService.getInstance();
     _dataService = DataService.getInstance();
     _currentUser = _dataService.getCurrentUser();
+    _isLoggedIn = _dataService.isLoggedIn(); // 检查登录状态
     setState(() {
       _isInitialized = true;
     });
@@ -86,7 +88,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           );
                         },
                         child: UserAvatar(
-                          avatarPath: _currentUser.avatar,
+                          avatarPath: _isLoggedIn ? _currentUser.avatar : 'assets/images/avatars/user_1.png', // 未登录时使用默认头像
                           size: 80,
                           backgroundColor: Colors.white,
                         ),
@@ -101,7 +103,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             Row(
                               children: [
                                 Text(
-                                  _currentUser.nickname,
+                                  _isLoggedIn ? _currentUser.nickname : '游客', // 未登录时显示"游客"
                                   style: const TextStyle(
                                     fontSize: 20,
                                     fontWeight: FontWeight.w600,
@@ -121,6 +123,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                       // 从VIP页面返回后刷新用户数据
                                       setState(() {
                                         _currentUser = _dataService.getCurrentUser();
+                                        _isLoggedIn = _dataService.isLoggedIn();
                                       });
                                     });
                                   },
@@ -130,14 +133,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                       vertical: 2,
                                     ),
                                     decoration: BoxDecoration(
-                                      color: _currentUser.isVip 
+                                      color: (_isLoggedIn && _currentUser.isVip) 
                                         ? const Color(0xFFFFD700).withOpacity(0.2)
-                                        : AppColors.textHint.withOpacity(0.1),
+                                        : AppColors.textHint.withOpacity(0.1), // 未登录时置灰
                                       borderRadius: BorderRadius.circular(12),
                                       border: Border.all(
-                                        color: _currentUser.isVip 
+                                        color: (_isLoggedIn && _currentUser.isVip) 
                                           ? const Color(0xFFFFD700)
-                                          : AppColors.textHint,
+                                          : AppColors.textHint, // 未登录时置灰
                                         width: 1,
                                       ),
                                     ),
@@ -147,18 +150,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                         Icon(
                                           Icons.diamond,
                                           size: 12,
-                                          color: _currentUser.isVip 
+                                          color: (_isLoggedIn && _currentUser.isVip) 
                                             ? const Color(0xFFFFD700)
-                                            : AppColors.textHint,
+                                            : AppColors.textHint, // 未登录时置灰
                                         ),
                                         const SizedBox(width: 2),
                                         Text(
-                                          _currentUser.userLevel,
+                                          _isLoggedIn ? _currentUser.userLevel : '普通用户', // 未登录时显示普通用户
                                           style: TextStyle(
                                             fontSize: 10,
-                                            color: _currentUser.isVip 
+                                            color: (_isLoggedIn && _currentUser.isVip) 
                                               ? const Color(0xFFFFD700)
-                                              : AppColors.textHint,
+                                              : AppColors.textHint, // 未登录时置灰
                                             fontWeight: FontWeight.w500,
                                           ),
                                         ),
@@ -169,7 +172,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               ],
                             ),
                             const SizedBox(height: 8),
-                            if (_currentUser.mood.isNotEmpty)
+                            if (_isLoggedIn && _currentUser.mood.isNotEmpty) // 只有登录时才显示心情
                               Container(
                                 padding: const EdgeInsets.symmetric(
                                   horizontal: 10,
@@ -205,18 +208,34 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       Expanded(
                         child: GestureDetector(
                           onTap: () {
+                            if (!_isLoggedIn) {
+                              // 未登录时提示需要登录
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('请先登录后查看'),
+                                  duration: Duration(seconds: 2),
+                                ),
+                              );
+                              return;
+                            }
                             Navigator.push(
                               context,
                               MaterialPageRoute(
                                 builder: (context) => const MyLikedPostsScreen(),
                               ),
-                            );
+                            ).then((_) {
+                              // 刷新状态
+                              setState(() {
+                                _currentUser = _dataService.getCurrentUser();
+                                _isLoggedIn = _dataService.isLoggedIn();
+                              });
+                            });
                           },
                           child: _buildStatItem(
                             '获赞',
-                            _currentUser.likeCount.toString(),
+                            _isLoggedIn ? _currentUser.likeCount.toString() : '0',
                             Icons.favorite,
-                            Colors.red.shade400,
+                            _isLoggedIn ? Colors.red.shade400 : AppColors.textHint,
                           ),
                         ),
                       ),
@@ -228,6 +247,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       Expanded(
                         child: GestureDetector(
                           onTap: () {
+                            if (!_isLoggedIn) {
+                              // 未登录时提示需要登录
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('请先登录后查看'),
+                                  duration: Duration(seconds: 2),
+                                ),
+                              );
+                              return;
+                            }
                             Navigator.push(
                               context,
                               MaterialPageRoute(
@@ -237,14 +266,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               // 从收藏页面返回时刷新用户数据
                               setState(() {
                                 _currentUser = _dataService.getCurrentUser();
+                                _isLoggedIn = _dataService.isLoggedIn();
                               });
                             });
                           },
                           child: _buildStatItem(
                             '收藏',
-                            _currentUser.collectionCount.toString(),
+                            _isLoggedIn ? _currentUser.collectionCount.toString() : '0',
                             Icons.bookmark,
-                            AppColors.accent,
+                            _isLoggedIn ? AppColors.accent : AppColors.textHint,
                           ),
                         ),
                       ),
@@ -256,6 +286,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       Expanded(
                         child: GestureDetector(
                           onTap: () {
+                            if (!_isLoggedIn) {
+                              // 未登录时提示需要登录
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('请先登录后查看'),
+                                  duration: Duration(seconds: 2),
+                                ),
+                              );
+                              return;
+                            }
                             Navigator.push(
                               context,
                               MaterialPageRoute(
@@ -265,14 +305,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               // 从我的发布页面返回时刷新用户数据
                               setState(() {
                                 _currentUser = _dataService.getCurrentUser();
+                                _isLoggedIn = _dataService.isLoggedIn();
                               });
                             });
                           },
                           child: _buildStatItem(
                             '发布',
-                            _currentUser.postCount.toString(),
+                            _isLoggedIn ? _currentUser.postCount.toString() : '0',
                             Icons.article,
-                            const Color(0xFF27AE60),
+                            _isLoggedIn ? const Color(0xFF27AE60) : AppColors.textHint,
                           ),
                         ),
                       ),
@@ -284,18 +325,34 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       Expanded(
                         child: GestureDetector(
                           onTap: () {
+                            if (!_isLoggedIn) {
+                              // 未登录时提示需要登录
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('请先登录后查看'),
+                                  duration: Duration(seconds: 2),
+                                ),
+                              );
+                              return;
+                            }
                             Navigator.push(
                               context,
                               MaterialPageRoute(
                                 builder: (context) => DaysDetailScreen(user: _currentUser),
                               ),
-                            );
+                            ).then((_) {
+                              // 刷新状态
+                              setState(() {
+                                _currentUser = _dataService.getCurrentUser();
+                                _isLoggedIn = _dataService.isLoggedIn();
+                              });
+                            });
                           },
                           child: _buildStatItem(
                             '天数',
-                            _currentUser.daysSinceJoin.toString(),
+                            _isLoggedIn ? _currentUser.daysSinceJoin.toString() : '0',
                             Icons.calendar_today,
-                            const Color(0xFF8E44AD),
+                            _isLoggedIn ? const Color(0xFF8E44AD) : AppColors.textHint,
                           ),
                         ),
                       ),
@@ -324,7 +381,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             MaterialPageRoute(
                               builder: (context) => const RechargeCenterScreen(),
                             ),
-                          );
+                          ).then((_) {
+                            // 从充值中心返回时刷新状态
+                            setState(() {
+                              _currentUser = _dataService.getCurrentUser();
+                              _isLoggedIn = _dataService.isLoggedIn();
+                            });
+                          });
                         },
                       ),
                     ),
@@ -345,6 +408,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             // 从账户管理页面返回时刷新用户数据
                             setState(() {
                               _currentUser = _dataService.getCurrentUser();
+                              _isLoggedIn = _dataService.isLoggedIn();
                             });
                           });
                         },

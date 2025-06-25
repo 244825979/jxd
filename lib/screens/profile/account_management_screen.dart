@@ -39,7 +39,30 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
   void initState() {
     super.initState();
     _dataService = DataService.getInstance();
-    _checkLoginStatus();
+    _initializeUserData();
+  }
+
+  // 初始化用户数据
+  void _initializeUserData() {
+    // 从DataService获取当前登录状态
+    _isLoggedIn = _dataService.isLoggedIn();
+    _isLoading = false;
+    
+    final currentUser = _dataService.getCurrentUser();
+    
+    // 更新用户信息显示
+    userInfo.addAll({
+      'nickname': currentUser.nickname,
+      'coins': currentUser.coins,
+      'isVip': currentUser.isVip,
+      'vipExpireDate': currentUser.vipExpireDate,
+      'email': currentUser.email,
+      'joinDate': currentUser.joinDate.toString().split(' ')[0],
+    });
+
+    if (mounted) {
+      setState(() {});
+    }
   }
 
   // 检查登录状态
@@ -99,17 +122,7 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
         });
       }
       
-      // 检查凭证状态
-      if (isLoggedIn && currentUser != null) {
-        final isValid = await _authService.checkCredentialState();
-        if (!isValid && mounted) {
-          setState(() {
-            _isLoggedIn = false;
-            _currentUser = null;
-          });
-          _showErrorMessage('登录已过期，请重新登录');
-        }
-      }
+      // 移除Apple凭证状态检查，避免自动弹出登录框
     } catch (e) {
       if (mounted) {
         setState(() {
@@ -749,83 +762,33 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
 
   // === 事件处理方法 ===
 
-  // Apple登录处理
+  // 模拟登录处理
   Future<void> _handleAppleLogin() async {
-    // 检查Apple登录是否可用
-    final isAvailable = await _authService.isAppleSignInAvailable();
-    if (!isAvailable) {
-      _showErrorMessage('Apple登录在此设备上不可用');
-      return;
-    }
-
     // 显示加载提示
     _showLoadingDialog('正在登录...');
 
     try {
-      // 执行Apple登录
-      final result = await _authService.signInWithApple();
+      // 模拟登录延迟
+      await Future.delayed(const Duration(seconds: 1));
+      
+      // 模拟登录成功，设置登录状态
+      final email = 'user${DateTime.now().millisecondsSinceEpoch % 10000}@example.com';
+      final nickname = '心灵旅者${DateTime.now().millisecondsSinceEpoch % 10000}';
+      
+      _dataService.setLoginStatus(true, email: email, nickname: nickname);
       
       // 关闭加载对话框
       _safeCloseLoadingDialog();
       
       if (mounted) {
-        switch (result.result) {
-          case AppleSignInResult.success:
-            if (result.userInfo != null) {
-              setState(() {
-                _isLoggedIn = true;
-                _currentUser = result.userInfo;
-                
-                // 更新用户信息
-                final email = result.userInfo!.email.isNotEmpty 
-                  ? result.userInfo!.email 
-                  : '${result.userInfo!.userId.substring(0, 8)}***@privaterelay.appleid.com';
-                
-                // 获取个人中心的当前昵称
-                final profileUser = _dataService.getCurrentUser();
-                
-                // 昵称优先级：Apple登录的昵称 > 个人中心昵称
-                String finalNickname;
-                if (result.userInfo!.nickname != null && result.userInfo!.nickname!.isNotEmpty) {
-                  finalNickname = result.userInfo!.nickname!;
-                } else if (result.userInfo!.displayName.isNotEmpty && result.userInfo!.displayName != '心灵旅者${result.userInfo!.userId.substring(0, 8)}') {
-                  finalNickname = result.userInfo!.displayName;
-                } else {
-                  finalNickname = profileUser.nickname;
-                }
-                
-                // 同步昵称到个人中心
-                _dataService.updateUser(nickname: finalNickname);
-                
-                userInfo.addAll({
-                  'nickname': finalNickname,
-                  'appleId': email,
-                  'joinDate': result.userInfo!.loginTime.toString().split(' ')[0],
-                  'userId': result.userInfo!.userId,
-                  'isVerified': result.userInfo!.isVerified,
-                });
-                
-                if (kDebugMode) {
-                  // 更新用户信息
-                }
-              });
-              
-              _showSuccessMessage('登录成功，欢迎使用静心岛！');
-            }
-            break;
-            
-          case AppleSignInResult.cancelled:
-            // 用户取消登录，不显示错误信息
-            break;
-            
-          case AppleSignInResult.failed:
-            _showErrorMessage(result.error ?? '登录失败，请重试');
-            break;
-            
-          case AppleSignInResult.unavailable:
-            _showErrorMessage('Apple登录不可用');
-            break;
-        }
+        // 重新初始化用户数据以反映登录状态
+        _initializeUserData();
+        
+        setState(() {
+          _isLoggedIn = true;
+        });
+        
+        _showSuccessMessage('登录成功，欢迎使用静心岛！');
       }
     } catch (e) {
       // 关闭加载对话框
@@ -1085,29 +1048,19 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
               _showLoadingDialog('正在退出...');
               
               try {
-                await _authService.signOut();
-                
-                // 退出登录：重置显示状态但保留本地数据
-                _dataService.resetUserData();
+                // 设置登录状态为false
+                _dataService.setLoginStatus(false);
                 
                 // 关闭加载对话框
                 _safeCloseLoadingDialog();
                 
                 if (mounted) {
+                  // 重新初始化用户数据
+                  _initializeUserData();
+                  
                   setState(() {
                     _isLoggedIn = false;
                     _currentUser = null;
-                    // 重置用户信息
-                    userInfo = {
-                      'nickname': '心灵旅者',
-                      'appleId': 'user@privaterelay.appleid.com',
-                      'joinDate': '2024-01-01',
-                      'avatar': 'assets/images/avatars/user_1.png',
-                      'isVip': false,
-                      'vipExpireDate': null,
-                      'coins': 0, // 退出登录后金币为0
-                      'totalCoins': 0,
-                    };
                   });
                   _showSuccessMessage('已退出登录');
                 }
@@ -1225,8 +1178,6 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
                   _showLoadingDialog('正在注销账户...');
                   
                   try {
-                    await _authService.deleteAccount();
-                    
                     // 注销账户：完全清除本地和显示数据
                     await _dataService.clearAllUserData();
                     
@@ -1234,20 +1185,12 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
                     _safeCloseLoadingDialog();
                     
                     if (mounted) {
+                      // 重新初始化用户数据
+                      _initializeUserData();
+                      
                       setState(() {
                         _isLoggedIn = false;
                         _currentUser = null;
-                        // 重置用户信息
-                        userInfo = {
-                          'nickname': '心灵旅者',
-                          'appleId': 'user@privaterelay.appleid.com',
-                          'joinDate': '2024-01-01',
-                          'avatar': 'assets/images/avatars/user_1.png',
-                          'isVip': false,
-                          'vipExpireDate': null,
-                          'coins': 0, // 注销账户后金币为0
-                          'totalCoins': 0,
-                        };
                       });
                       _showSuccessMessage('账户已注销');
                     }

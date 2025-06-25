@@ -25,10 +25,14 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
   int _likeCount = 0;
   int _commentCount = 0;
   bool _hasStateChanged = false; // 用于追踪状态是否发生变化
+  bool _isLoggedIn = false; // 添加登录状态
 
   @override
   void initState() {
     super.initState();
+    // 检查登录状态
+    _isLoggedIn = _dataService.isLoggedIn();
+    
     // 从数据服务获取最新的帖子状态
     final latestPost = _dataService.getPostById(widget.post.id);
     if (latestPost != null) {
@@ -554,7 +558,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
           Expanded(
             child: Container(
               decoration: BoxDecoration(
-                color: AppColors.primary,
+                color: _isLoggedIn ? AppColors.primary : AppColors.primary.withOpacity(0.5),
                 borderRadius: BorderRadius.circular(24),
                 border: Border.all(
                   color: AppColors.borderColor.withOpacity(0.3),
@@ -564,20 +568,32 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
               child: TextField(
                 controller: _commentController,
                 focusNode: _commentFocusNode,
-                decoration: const InputDecoration(
-                  hintText: '说说你的看法...',
+                enabled: _isLoggedIn, // 只有登录时才能输入
+                onTap: () {
+                  if (!_isLoggedIn) {
+                    // 未登录时点击输入框提示登录
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('请先登录后再发表评论'),
+                        duration: Duration(seconds: 2),
+                      ),
+                    );
+                  }
+                },
+                decoration: InputDecoration(
+                  hintText: _isLoggedIn ? '说说你的看法...' : '登录后发表评论',
                   hintStyle: TextStyle(
-                    color: AppColors.textHint,
+                    color: _isLoggedIn ? AppColors.textHint : AppColors.textHint.withOpacity(0.6),
                     fontSize: 14,
                   ),
                   border: InputBorder.none,
-                  contentPadding: EdgeInsets.symmetric(
+                  contentPadding: const EdgeInsets.symmetric(
                     horizontal: 16,
                     vertical: 12,
                   ),
                 ),
-                style: const TextStyle(
-                  color: AppColors.textPrimary,
+                style: TextStyle(
+                  color: _isLoggedIn ? AppColors.textPrimary : AppColors.textPrimary.withOpacity(0.6),
                   fontSize: 14,
                 ),
                 maxLines: 3,
@@ -592,11 +608,11 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
               width: 40,
               height: 40,
               decoration: BoxDecoration(
-                color: AppColors.accent,
+                color: _isLoggedIn ? AppColors.accent : AppColors.textHint.withOpacity(0.5),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(
-                Icons.send,
+              child: Icon(
+                _isLoggedIn ? Icons.send : Icons.login,
                 color: Colors.white,
                 size: 18,
               ),
@@ -657,6 +673,17 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
 
   // 切换点赞状态
   void _toggleLike() {
+    // 检查登录状态
+    if (!_isLoggedIn) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('请先登录后再点赞'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+      return;
+    }
+    
     final newLikeStatus = _dataService.togglePostLike(widget.post.id);
     
     setState(() {
@@ -681,6 +708,17 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
 
   // 切换收藏状态
   void _toggleBookmark() {
+    // 检查登录状态
+    if (!_isLoggedIn) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('请先登录后再收藏'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+      return;
+    }
+    
     final newBookmarkStatus = _dataService.togglePostBookmark(widget.post.id);
     
     setState(() {
@@ -700,6 +738,17 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
 
   // 发布评论
   void _postComment() {
+    // 检查登录状态
+    if (!_isLoggedIn) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('请先登录后再发表评论'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+      return;
+    }
+    
     final commentText = _commentController.text.trim();
     if (commentText.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(

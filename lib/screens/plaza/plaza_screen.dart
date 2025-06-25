@@ -22,11 +22,13 @@ class _PlazaScreenState extends State<PlazaScreen> with WidgetsBindingObserver {
   String? _selectedTopic;
   bool _isNavigating = false; // 防止重复导航
   Timer? _refreshTimer;
+  bool _isLoggedIn = false; // 添加登录状态
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _checkLoginStatus(); // 检查登录状态
     _loadData();
     _startAutoRefresh();
   }
@@ -43,8 +45,16 @@ class _PlazaScreenState extends State<PlazaScreen> with WidgetsBindingObserver {
     super.didChangeAppLifecycleState(state);
     // 当应用重新获得焦点时刷新数据
     if (state == AppLifecycleState.resumed) {
+      _checkLoginStatus(); // 检查登录状态
       _loadData();
     }
+  }
+
+  // 检查登录状态
+  void _checkLoginStatus() {
+    setState(() {
+      _isLoggedIn = _dataService.isLoggedIn();
+    });
   }
 
   // 启动自动刷新（由于审核状态不会自动改变，暂时禁用）
@@ -65,6 +75,7 @@ class _PlazaScreenState extends State<PlazaScreen> with WidgetsBindingObserver {
     setState(() {
       _posts = _dataService.getPosts();
       _hotTopics = _dataService.getHotTopics();
+      _isLoggedIn = _dataService.isLoggedIn(); // 每次加载数据时也刷新登录状态
     });
   }
 
@@ -158,6 +169,17 @@ class _PlazaScreenState extends State<PlazaScreen> with WidgetsBindingObserver {
                     width: double.infinity,
                     child: ElevatedButton.icon(
                       onPressed: _selectedTopic != null ? () async {
+                        // 检查登录状态
+                        if (!_isLoggedIn) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('请先登录后再发布话题'),
+                              duration: Duration(seconds: 2),
+                            ),
+                          );
+                          return;
+                        }
+                        
                         final result = await Navigator.push(
                           context,
                           MaterialPageRoute(
@@ -174,9 +196,14 @@ class _PlazaScreenState extends State<PlazaScreen> with WidgetsBindingObserver {
                           });
                         }
                       } : null,
-                      icon: const Icon(Icons.edit, color: Colors.white),
+                      icon: Icon(
+                        _isLoggedIn ? Icons.edit : Icons.login,
+                        color: Colors.white,
+                      ),
                       label: Text(
-                        _selectedTopic != null ? '发布到 #$_selectedTopic' : '请先选择话题',
+                        _selectedTopic != null 
+                          ? (_isLoggedIn ? '发布到 #$_selectedTopic' : '登录后发布到 #$_selectedTopic')
+                          : '请先选择话题',
                         style: const TextStyle(color: Colors.white),
                       ),
                       style: ElevatedButton.styleFrom(

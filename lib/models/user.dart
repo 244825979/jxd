@@ -10,6 +10,8 @@ class User {
   final bool isVip;
   final DateTime? vipExpireDate;
   final int coins;
+  final bool isLoggedIn; // 新增登录状态字段
+  final String email; // 新增邮箱字段
 
   User({
     required this.id,
@@ -23,6 +25,8 @@ class User {
     this.isVip = false,
     this.vipExpireDate,
     this.coins = 0,
+    this.isLoggedIn = false, // 默认未登录
+    this.email = '', // 默认空邮箱
   });
 
   factory User.fromJson(Map<String, dynamic> json) {
@@ -40,6 +44,8 @@ class User {
         ? DateTime.parse(json['vipExpireDate']) 
         : null,
       coins: json['coins'] ?? 0,
+      isLoggedIn: json['isLoggedIn'] ?? false,
+      email: json['email'] ?? '',
     );
   }
 
@@ -56,6 +62,8 @@ class User {
       'isVip': isVip,
       'vipExpireDate': vipExpireDate?.toIso8601String(),
       'coins': coins,
+      'isLoggedIn': isLoggedIn,
+      'email': email,
     };
   }
 
@@ -71,6 +79,8 @@ class User {
     bool? isVip,
     DateTime? vipExpireDate,
     int? coins,
+    bool? isLoggedIn,
+    String? email,
   }) {
     return User(
       id: id ?? this.id,
@@ -84,6 +94,8 @@ class User {
       isVip: isVip ?? this.isVip,
       vipExpireDate: vipExpireDate ?? this.vipExpireDate,
       coins: coins ?? this.coins,
+      isLoggedIn: isLoggedIn ?? this.isLoggedIn,
+      email: email ?? this.email,
     );
   }
 
