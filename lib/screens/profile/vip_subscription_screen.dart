@@ -130,11 +130,6 @@ class _VipSubscriptionScreenState extends State<VipSubscriptionScreen> {
 
   // 购买VIP
   Future<void> _purchaseVip(String productId) async {
-    if (!_isLoggedIn) {
-      _showLoginDialog();
-      return;
-    }
-
     if (_isPurchasing) {
       return;
     }
@@ -182,7 +177,12 @@ class _VipSubscriptionScreenState extends State<VipSubscriptionScreen> {
         final duration = productInfo['duration'] as String;
         _dataService.activateVip();
         
-        _showSuccessDialog('VIP开通成功！已开通$duration会员');
+        // 给未登录用户特别提示
+        if (_isLoggedIn) {
+          _showSuccessDialog('VIP开通成功！已开通$duration会员');
+        } else {
+          _showSuccessWithOptionalLoginDialog('VIP开通成功！已开通$duration会员\n\nVIP状态已保存到本地设备，无需担心丢失。\n如需多设备同步，建议登录账户。');
+        }
         
         // 延迟返回上一页面
         Future.delayed(const Duration(seconds: 2), () {
@@ -287,6 +287,39 @@ class _VipSubscriptionScreenState extends State<VipSubscriptionScreen> {
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
               child: const Text('确定'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  // 显示带可选登录的成功对话框
+  void _showSuccessWithOptionalLoginDialog(String message) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('VIP开通成功'),
+          content: Text(message),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('我知道了'),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const AccountManagementScreen(),
+                  ),
+                ).then((_) {
+                  _checkLoginStatus();
+                });
+              },
+              child: const Text('去登录'),
             ),
           ],
         );
@@ -583,12 +616,10 @@ class _VipSubscriptionScreenState extends State<VipSubscriptionScreen> {
                 ),
               ],
             )
-          : Text(
-              !_isLoggedIn
-                ? '请先进行登录'
-                : (selectedPlan >= 0 
-                    ? '开通VIP ¥${vipPlans[selectedPlan]['price']}'
-                    : '请选择VIP套餐'),
+                      : Text(
+                selectedPlan >= 0 
+                     ? '开通VIP ¥${vipPlans[selectedPlan]['price']}'
+                     : '请选择VIP套餐',
               style: const TextStyle(
                 color: Colors.white,
                 fontSize: 16,
@@ -628,12 +659,6 @@ class _VipSubscriptionScreenState extends State<VipSubscriptionScreen> {
   void _handleSubscribe() {
     if (selectedPlan < 0) return;
     
-    // 检查登录状态
-    if (!_isLoggedIn) {
-      _showLoginRequiredDialog();
-      return;
-    }
-    
     final plan = vipPlans[selectedPlan];
     final productId = plan['product_id'];
     
@@ -641,55 +666,7 @@ class _VipSubscriptionScreenState extends State<VipSubscriptionScreen> {
     _purchaseVip(productId);
   }
 
-  // 显示登录提示对话框
-  void _showLoginRequiredDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: AppColors.background,
-        title: const Text(
-          '需要登录',
-          style: TextStyle(color: AppColors.textPrimary),
-        ),
-        content: const Text(
-          'VIP订阅功能需要登录后才能使用，请先登录您的账户。',
-          style: TextStyle(color: AppColors.textSecondary),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('取消'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              _goToLogin();
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF00695C),
-            ),
-            child: const Text(
-              '去登录',
-              style: TextStyle(color: Colors.white),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 
-  // 跳转到登录页面
-  void _goToLogin() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => const AccountManagementScreen(),
-      ),
-    ).then((_) {
-      // 从登录页面返回后重新检查登录状态
-      _checkLoginStatus();
-    }    );
-  }
 
 
 

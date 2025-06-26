@@ -271,14 +271,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                       vertical: 2,
                                     ),
                                     decoration: BoxDecoration(
-                                      color: (_isLoggedIn && _currentUser.isVip) 
+                                      color: _currentUser.isVip 
                                         ? const Color(0xFFFFD700).withOpacity(0.2)
-                                        : AppColors.textHint.withOpacity(0.1), // 未登录时置灰
+                                        : AppColors.textHint.withOpacity(0.1), // 非VIP时置灰
                                       borderRadius: BorderRadius.circular(12),
                                       border: Border.all(
-                                        color: (_isLoggedIn && _currentUser.isVip) 
+                                        color: _currentUser.isVip 
                                           ? const Color(0xFFFFD700)
-                                          : AppColors.textHint, // 未登录时置灰
+                                          : AppColors.textHint, // 非VIP时置灰
                                         width: 1,
                                       ),
                                     ),
@@ -288,18 +288,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                         Icon(
                                           Icons.diamond,
                                           size: 12,
-                                          color: (_isLoggedIn && _currentUser.isVip) 
+                                          color: _currentUser.isVip 
                                             ? const Color(0xFFFFD700)
-                                            : AppColors.textHint, // 未登录时置灰
+                                            : AppColors.textHint, // 非VIP时置灰
                                         ),
                                         const SizedBox(width: 2),
                                         Text(
-                                          _isLoggedIn ? _currentUser.userLevel : '普通用户', // 未登录时显示普通用户
+                                          _currentUser.isVip ? 'VIP会员' : '普通用户', // 根据VIP状态显示
                                           style: TextStyle(
                                             fontSize: 10,
-                                            color: (_isLoggedIn && _currentUser.isVip) 
+                                            color: _currentUser.isVip 
                                               ? const Color(0xFFFFD700)
-                                              : AppColors.textHint, // 未登录时置灰
+                                              : AppColors.textHint, // 非VIP时置灰
                                             fontWeight: FontWeight.w500,
                                           ),
                                         ),

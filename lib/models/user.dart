@@ -106,6 +106,6 @@ class User {
 
   // 获取用户等级（VIP标识）
   String get userLevel {
-    return 'VIP';
+    return isVip ? 'VIP会员' : '普通用户';
   }
 } 

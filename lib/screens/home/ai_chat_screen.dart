@@ -10,6 +10,7 @@ import '../../widgets/common/ai_avatar.dart';
 import '../../widgets/common/user_avatar.dart';
 import '../../models/user.dart';
 import '../profile/account_management_screen.dart';
+import '../profile/recharge_center_screen.dart';
 
 class AIChatScreen extends StatefulWidget {
   const AIChatScreen({super.key});
@@ -93,13 +94,8 @@ class _AIChatScreenState extends State<AIChatScreen> {
     final text = _messageController.text.trim();
     if (text.isEmpty || _isLoading) return;
 
-    // 检查登录状态
-    if (!_isLoggedIn) {
-      _showLoginDialog();
-      return;
-    }
-
     // 检查是否需要消耗金币（非VIP用户）
+    // 无论是否登录，都可以使用金币和VIP功能
     if (!_currentUser.isVip) {
       if (_currentUser.coins < 1) {
         _showInsufficientCoinsDialog();
@@ -186,7 +182,7 @@ class _AIChatScreenState extends State<AIChatScreen> {
       builder: (BuildContext context) {
         return AlertDialog(
           title: const Text('金币不足'),
-          content: const Text('发送消息需要消耗1金币，您的金币不足。\n\n• 充值金币\n• 开通VIP会员免费使用'),
+          content: const Text('发送消息需要消耗1金币，您的金币不足。\n\n• 充值金币\n• 开通VIP会员免费使用\n\n无需登录即可充值和使用'),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
@@ -198,7 +194,7 @@ class _AIChatScreenState extends State<AIChatScreen> {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => const AccountManagementScreen(),
+                    builder: (context) => const RechargeCenterScreen(),
                   ),
                 ).then((_) => _checkLoginStatus()); // 充值后重新检查状态
               },
@@ -449,19 +445,17 @@ class _AIChatScreenState extends State<AIChatScreen> {
   }
 
   Widget _buildInputArea() {
-    // 根据登录状态和会员状态确定提示文本
+    // 根据VIP状态确定提示文本
     String getHintText() {
-      if (!_isLoggedIn) {
-        return '请先登录后再与助手对话';
-      } else if (_currentUser.isVip) {
+      if (_currentUser.isVip) {
         return '分享你此刻的想法... (VIP会员免费)';
       } else {
         return '分享你此刻的想法... (消耗1金币/条)';
       }
     }
 
-    // 确定输入框是否可用
-    bool isInputEnabled = _isLoggedIn && (_currentUser.isVip || _currentUser.coins >= 1);
+    // 确定输入框是否可用 - 只要有VIP或金币就可以使用
+    bool isInputEnabled = _currentUser.isVip || _currentUser.coins >= 1;
     
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
@@ -481,39 +475,33 @@ class _AIChatScreenState extends State<AIChatScreen> {
       child: SafeArea(
         child: Column(
           children: [
-            // 状态提示条
-            if (!_isLoggedIn || (!_currentUser.isVip && _currentUser.coins < 1))
+            // 状态提示条 - 只有在金币不足且非VIP时才显示
+            if (!_currentUser.isVip && _currentUser.coins < 1)
               Container(
                 margin: const EdgeInsets.only(bottom: 12),
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 decoration: BoxDecoration(
-                  color: !_isLoggedIn 
-                      ? AppColors.accent.withOpacity(0.1)
-                      : Colors.orange.withOpacity(0.1),
+                  color: Colors.orange.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(8),
                   border: Border.all(
-                    color: !_isLoggedIn 
-                        ? AppColors.accent.withOpacity(0.3)
-                        : Colors.orange.withOpacity(0.3),
+                    color: Colors.orange.withOpacity(0.3),
                     width: 1,
                   ),
                 ),
                 child: Row(
                   children: [
                     Icon(
-                      !_isLoggedIn ? Icons.login : Icons.monetization_on_outlined,
+                      Icons.monetization_on_outlined,
                       size: 16,
-                      color: !_isLoggedIn ? AppColors.accent : Colors.orange,
+                      color: Colors.orange,
                     ),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        !_isLoggedIn 
-                            ? '请先登录后使用情感助手'
-                            : '金币不足，请充值金币或开通VIP会员',
+                        '金币不足，请充值金币或开通VIP会员 (无需登录)',
                         style: TextStyle(
                           fontSize: 12,
-                          color: !_isLoggedIn ? AppColors.accent : Colors.orange,
+                          color: Colors.orange,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
@@ -523,7 +511,7 @@ class _AIChatScreenState extends State<AIChatScreen> {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => const AccountManagementScreen(),
+                            builder: (context) => const RechargeCenterScreen(),
                           ),
                         ).then((_) => _checkLoginStatus());
                       },
@@ -533,10 +521,10 @@ class _AIChatScreenState extends State<AIChatScreen> {
                         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                       ),
                       child: Text(
-                        !_isLoggedIn ? '去登录' : '去充值',
+                        '去充值',
                         style: TextStyle(
                           fontSize: 12,
-                          color: !_isLoggedIn ? AppColors.accent : Colors.orange,
+                          color: Colors.orange,
                           fontWeight: FontWeight.w600,
                         ),
                       ),

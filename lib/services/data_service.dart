@@ -1229,20 +1229,28 @@ class DataService {
 
   // 重置用户数据（退出登录时调用）
   void resetUserData() {
+    // 保留金币和VIP状态，只重置登录相关信息
+    final currentCoins = _currentUser.coins;
+    final currentVipStatus = _currentUser.isVip;
+    final currentVipExpireDate = _currentUser.vipExpireDate;
+    
     _currentUser = User(
       id: 'guest',
       nickname: '游客',
       avatar: 'assets/images/avatars/user_1.png',
-      coins: 0, // 未登录用户金币为0
+      coins: currentCoins, // 保留金币
       likeCount: 0,
       collectionCount: 0,
       postCount: 0,
       joinDate: DateTime.now(),
       mood: '',
-      isVip: false,
+      isVip: currentVipStatus, // 保留VIP状态
+      vipExpireDate: currentVipExpireDate, // 保留VIP过期时间
       isLoggedIn: false, // 设置为未登录状态
       email: '',
     );
+    // 保存到本地
+    _saveCurrentUserToLocal();
     // 也可以重置用户数据
     _userData = UserData();
   }
@@ -1250,16 +1258,17 @@ class DataService {
   // 设置登录状态
   void setLoginStatus(bool isLoggedIn, {String email = '', String? nickname}) {
     if (isLoggedIn) {
-      // 登录时创建登录用户数据
+      // 登录时保留金币和VIP状态，更新登录信息
       _currentUser = _currentUser.copyWith(
         id: 'logged_user_${DateTime.now().millisecondsSinceEpoch}',
         nickname: nickname ?? '心灵旅者',
         isLoggedIn: true,
         email: email,
         joinDate: DateTime.now(),
+        // 保留原有的金币和VIP状态
       );
     } else {
-      // 退出登录时重置为游客
+      // 退出登录时保留金币和VIP状态
       resetUserData();
     }
     _saveCurrentUserToLocal();

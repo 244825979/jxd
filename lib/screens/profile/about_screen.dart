@@ -287,7 +287,7 @@ class AboutScreen extends StatelessWidget {
           ),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(
+            decoration: BoxDecoration( 
               color: Colors.green.shade100,
               borderRadius: BorderRadius.circular(12),
             ),
